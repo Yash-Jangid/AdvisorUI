@@ -1,0 +1,242 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DESIGN TOKEN SYSTEM — Dark theme by default
+   All values driven by CSS variables; no hardcoded colors anywhere.
+══════════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── Primary (Cricket Green) ─────────────────────────────────────────── */
+    --color-primary: 142 71% 45%;            /* hsl(142 71% 45%) */
+    --color-primary-foreground: 142 60% 95%;
+    --color-primary-50: 142 60% 96%;
+    --color-primary-100: 142 60% 90%;
+    --color-primary-700: 142 65% 32%;
+    --color-primary-900: 142 70% 18%;
+
+    /* ── Backgrounds ─────────────────────────────────────────────────────── */
+    --color-background: 222 47% 7%;           /* near-black navy */
+    --color-background-secondary: 222 40% 10%;
+    --color-background-tertiary: 222 35% 14%;
+
+    /* ── Text ────────────────────────────────────────────────────────────── */
+    --color-text-primary: 210 40% 95%;
+    --color-text-secondary: 210 25% 70%;
+    --color-text-tertiary: 210 15% 50%;
+
+    /* ── Accent Palette ──────────────────────────────────────────────────── */
+    --color-accent-blue: 217 91% 60%;
+    --color-accent-pink: 330 81% 60%;
+    --color-accent-gold: 43 96% 56%;
+    --color-accent-red: 0 84% 60%;
+
+    /* ── Semantic States ─────────────────────────────────────────────────── */
+    --color-success: 160 84% 39%;
+    --color-warning: 38 92% 50%;
+    --color-error: 0 84% 55%;
+    --color-info: 217 91% 60%;
+
+    /* ── Surfaces / Borders ──────────────────────────────────────────────── */
+    --color-border: 222 35% 20%;
+    --color-card: 222 40% 10%;
+    --color-card-foreground: 210 40% 95%;
+    --color-muted: 222 30% 25%;
+    --color-muted-foreground: 210 20% 55%;
+
+    /* ── Typography ──────────────────────────────────────────────────────── */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'Fira Code', monospace;
+
+    /* ── Spacing Scale (rem) ─────────────────────────────────────────────── */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+
+    /* ── Border Radius ───────────────────────────────────────────────────── */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+
+    /* ── Shadows ─────────────────────────────────────────────────────────── */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.08);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.25), 0 10px 10px -5px rgb(0 0 0 / 0.08);
+
+    /* ── Transitions ─────────────────────────────────────────────────────── */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Z-Index Scale ───────────────────────────────────────────────────── */
+    --z-base: 0;
+    --z-dropdown: 1000;
+    --z-sticky: 1100;
+    --z-modal: 1300;
+    --z-popover: 1400;
+    --z-tooltip: 1500;
+    --z-notification: 1600;
+    --z-loader: 9999;
+  }
+
+  /* ── Light Theme Overrides ───────────────────────────────────────────────── */
+  [data-theme='light'] {
+    --color-background: 210 40% 98%;
+    --color-background-secondary: 210 40% 95%;
+    --color-background-tertiary: 210 30% 90%;
+
+    --color-text-primary: 222 47% 10%;
+    --color-text-secondary: 222 25% 35%;
+    --color-text-tertiary: 222 15% 55%;
+
+    --color-border: 210 30% 82%;
+    --color-card: 0 0% 100%;
+    --color-card-foreground: 222 47% 10%;
+    --color-muted: 210 30% 88%;
+    --color-muted-foreground: 210 15% 55%;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BASE STYLES
+══════════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-text-primary;
+    min-height: 100vh;
+  }
+
+  /* Focus ring consistent across all interactive elements */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--color-background-secondary));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--color-muted));
+    border-radius: var(--radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--color-muted-foreground));
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SHIMMER / SKELETON ANIMATION
+══════════════════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--color-muted) / 0.3) 0%,
+      hsl(var(--color-muted-foreground) / 0.15) 30%,
+      hsl(var(--color-muted) / 0.3) 60%,
+      hsl(var(--color-muted) / 0.3) 100%
+    );
+    background-size: 2000px 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Live score indicator */
+  .live-dot {
+    @apply inline-block h-2 w-2 rounded-full bg-error animate-live-pulse;
+  }
+
+  /* Glassmorphism card */
+  .glass-card {
+    background: hsl(var(--color-card) / 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--color-border) / 0.5);
+  }
+
+  /* Odds button variants */
+  .odds-back {
+    @apply bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors;
+  }
+  .odds-lay {
+    @apply bg-pink-500/20 text-pink-400 border border-pink-500/30 hover:bg-pink-500/30 transition-colors;
+  }
+
+  /* Glow shadow — used on live match cards and scoreboards */
+  .shadow-glow {
+    box-shadow: 0 0 20px hsl(var(--color-primary) / 0.3),
+                0 0 40px hsl(var(--color-primary) / 0.1);
+  }
+
+  /* Minimal scrollbar for virtualised lists */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--color-muted)) hsl(var(--color-background-secondary));
+  }
+
+  /* Transition speed classes */
+  .duration-fast   { transition-duration: 150ms; }
+  .duration-base   { transition-duration: 250ms; }
+  .duration-slow   { transition-duration: 350ms; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   KEYFRAME DEFINITIONS (referenced by tailwind.config.ts animation keys)
+══════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position:  1000px 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes score-pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
