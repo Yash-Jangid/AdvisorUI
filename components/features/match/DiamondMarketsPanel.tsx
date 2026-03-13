@@ -28,22 +28,22 @@ interface DiamondMarket {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function MatchOddsTable({ market }: { market: DiamondMarket }) {
+function MatchOddsTable({ market, onSelectOutcome }: { market: DiamondMarket, onSelectOutcome?: (marketId: string, o: any, m: any) => void }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-xs text-zinc-500 border-b border-zinc-800/50">
             <th className="text-left py-2 font-medium w-1/2">Runner</th>
-            <th className="py-2 text-right font-medium">Back</th>
-            <th className="py-2 text-right font-medium">Lay</th>
+            <th className="py-2 text-center font-medium">Back</th>
+            <th className="py-2 text-center font-medium">Lay</th>
           </tr>
         </thead>
         <tbody>
           {(market.section ?? []).map((runner, ridx) => {
             const backOdds = runner.odds?.filter((o) => o.otype === 'back').sort((a, b) => b.odds - a.odds)[0];
             const layOdds = runner.odds?.filter((o) => o.otype === 'lay').sort((a, b) => a.odds - b.odds)[0];
-            const isActive = runner.gstatus === 'ACTIVE';
+            const isActive = runner.gstatus !== 'SUSPENDED' && runner.gstatus !== 'CLOSED';
 
             return (
               <tr key={`runner-${runner.sid ?? ridx}-${ridx}`} className="border-b border-zinc-800/30 last:border-0 group">
@@ -51,28 +51,34 @@ function MatchOddsTable({ market }: { market: DiamondMarket }) {
                   <span className={`text-sm font-medium ${isActive ? 'text-text-primary' : 'text-zinc-500'}`}>
                     {runner.nat}
                   </span>
-                  {!isActive && <span className="ml-2 text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded-full">{runner.gstatus}</span>}
+                  {!isActive && runner.gstatus && <span className="ml-2 text-[10px] text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-full uppercase">{runner.gstatus}</span>}
                 </td>
-                <td className="py-2.5 text-right">
+                <td className="py-2.5 text-center">
                   {backOdds ? (
-                    <div className="inline-flex flex-col items-center">
-                      <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded font-mono font-bold text-sm transition-all">
+                    <button 
+                      onClick={() => isActive && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid), label: runner.nat, decimalOdds: backOdds.odds }, market)}
+                      disabled={!isActive}
+                      className="inline-flex flex-col items-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+                      <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded font-mono font-bold text-sm transition-all cursor-pointer">
                         {backOdds.odds}
                       </span>
                       {backOdds.size != null && <span className="text-[10px] text-zinc-500 mt-0.5">{backOdds.size}</span>}
-                    </div>
+                    </button>
                   ) : (
                     <span className="text-zinc-600">—</span>
                   )}
                 </td>
-                <td className="py-2.5 text-right">
+                <td className="py-2.5 text-center">
                   {layOdds ? (
-                    <div className="inline-flex flex-col items-center">
-                      <span className="bg-pink-500/20 text-pink-400 border border-pink-500/30 px-3 py-1 rounded font-mono font-bold text-sm transition-all">
+                    <button 
+                      onClick={() => isActive && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid), label: runner.nat, decimalOdds: layOdds.odds }, market)}
+                      disabled={!isActive}
+                      className="inline-flex flex-col items-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+                      <span className="bg-pink-500/20 text-pink-400 border border-pink-500/30 px-3 py-1 rounded font-mono font-bold text-sm transition-all cursor-pointer">
                         {layOdds.odds}
                       </span>
                       {layOdds.size != null && <span className="text-[10px] text-zinc-500 mt-0.5">{layOdds.size}</span>}
-                    </div>
+                    </button>
                   ) : (
                     <span className="text-zinc-600">—</span>
                   )}
@@ -86,13 +92,14 @@ function MatchOddsTable({ market }: { market: DiamondMarket }) {
   );
 }
 
-function FancyGrid({ market }: { market: DiamondMarket }) {
+function FancyGrid({ market, onSelectOutcome }: { market: DiamondMarket, onSelectOutcome?: (marketId: string, o: any, m: any) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
       {(market.section ?? []).map((runner, ridx) => {
-        const yes = runner.odds?.find((o) => o.otype === 'yes');
-        const no = runner.odds?.find((o) => o.otype === 'no');
-        const isActive = runner.gstatus === 'ACTIVE';
+        // Fallback: lay is 'NO', back is 'YES'
+        const yes = runner.odds?.find((o) => o.otype === 'yes' || o.otype === 'back');
+        const no = runner.odds?.find((o) => o.otype === 'no' || o.otype === 'lay');
+        const isActive = runner.gstatus !== 'SUSPENDED' && runner.gstatus !== 'CLOSED';
 
         return (
           <div
@@ -105,22 +112,29 @@ function FancyGrid({ market }: { market: DiamondMarket }) {
           >
             <p className="text-xs text-text-secondary mb-2 truncate leading-tight" title={runner.nat}>
               {runner.nat}
+              {!isActive && runner.gstatus && <span className="ml-1 text-[9px] text-red-500 uppercase">({runner.gstatus})</span>}
             </p>
             <div className="flex gap-1.5">
-              <div className="flex-1 text-center">
-                <div className="bg-pink-500/20 border border-pink-500/30 rounded py-1 px-1">
+              <button 
+                onClick={() => isActive && no?.odds && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid ?? ridx), label: runner.nat + ' (NO)', decimalOdds: no.odds }, market)}
+                disabled={!isActive || !no?.odds}
+                className="flex-1 text-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+                <div className="bg-pink-500/20 border border-pink-500/30 rounded py-1 px-1 cursor-pointer">
                   <p className="text-pink-400 font-bold font-mono text-sm">{no?.odds ?? '—'}</p>
                   {no?.size != null && <p className="text-[10px] text-zinc-500">{no.size}</p>}
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1 font-medium">NO</p>
-              </div>
-              <div className="flex-1 text-center">
-                <div className="bg-blue-500/20 border border-blue-500/30 rounded py-1 px-1">
+              </button>
+              <button 
+                onClick={() => isActive && yes?.odds && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid ?? ridx), label: runner.nat + ' (YES)', decimalOdds: yes.odds }, market)}
+                disabled={!isActive || !yes?.odds}
+                className="flex-1 text-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+                <div className="bg-blue-500/20 border border-blue-500/30 rounded py-1 px-1 cursor-pointer">
                   <p className="text-blue-400 font-bold font-mono text-sm">{yes?.odds ?? '—'}</p>
                   {yes?.size != null && <p className="text-[10px] text-zinc-500">{yes.size}</p>}
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1 font-medium">YES</p>
-              </div>
+              </button>
             </div>
           </div>
         );
@@ -129,9 +143,18 @@ function FancyGrid({ market }: { market: DiamondMarket }) {
   );
 }
 
-function MarketCard({ market }: { market: DiamondMarket }) {
+function MarketCard({ market, onSelectOutcome }: { market: DiamondMarket, onSelectOutcome?: (marketId: string, o: any, m: any) => void }) {
   const [isOpen, setIsOpen] = useState(true);
-  const isFancy = market.mname === 'Fancy' || market.gtype === 'fancy';
+  
+  // Diamond uses various names/types for markets that behave like fancy grids (yes/no)
+  const isFancy = 
+    market.mname.toLowerCase().includes('fancy') || 
+    market.gtype === 'fancy' || 
+    market.gtype === 'fancy1' || 
+    market.gtype === 'oddeven' || 
+    market.gtype === 'meter';
+
+  // Even if a market is OPEN, individual runners might be SUSPENDED. We check overall market first.
   const isOpen_market = market.status === 'OPEN' || market.status === 'ACTIVE';
 
   return (
@@ -162,9 +185,9 @@ function MarketCard({ market }: { market: DiamondMarket }) {
       {isOpen && (
         <div className="px-4 py-3">
           {isFancy ? (
-            <FancyGrid market={market} />
+            <FancyGrid market={market} onSelectOutcome={onSelectOutcome} />
           ) : (
-            <MatchOddsTable market={market} />
+            <MatchOddsTable market={market} onSelectOutcome={onSelectOutcome} />
           )}
         </div>
       )}
@@ -177,9 +200,10 @@ function MarketCard({ market }: { market: DiamondMarket }) {
 interface DiamondMarketsPanelProps {
   matchId: string;
   isLive?: boolean;
+  onSelectOutcome?: (marketId: string, o: any, m: any) => void;
 }
 
-export function DiamondMarketsPanel({ matchId, isLive = false }: DiamondMarketsPanelProps) {
+export function DiamondMarketsPanel({ matchId, isLive = false, onSelectOutcome }: DiamondMarketsPanelProps) {
   // Fetch initial data via REST
   const { data: markets, isLoading } = useMatchDiamondMarkets(matchId);
 
@@ -212,7 +236,7 @@ export function DiamondMarketsPanel({ matchId, isLive = false }: DiamondMarketsP
   return (
     <div className="space-y-3">
       {marketsArray.map((market: DiamondMarket, idx: number) => (
-        <MarketCard key={`${market.mid ?? market.mname ?? idx}-${idx}`} market={market} />
+        <MarketCard key={`${market.mid ?? market.mname ?? idx}-${idx}`} market={market} onSelectOutcome={onSelectOutcome} />
       ))}
     </div>
   );

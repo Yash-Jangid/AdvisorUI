@@ -29,26 +29,40 @@ interface PredictionFormProps {
 }
 
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MAX_PAYOUT = 100000; // Platform default limit
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, selectedOutcome }: PredictionFormProps) {
   const { mutate: placePrediction, isPending } = usePlacePrediction();
   const [, startTransition] = useTransition();
 
+  console.log("🖥️ PredictionForm Render:", {
+    selectedMarket,
+    selectedOutcome,
+    predictionsLocked: match.predictionsLocked,
+    isPending
+  });
+
   const methods = useForm<PlacePredictionSchema>({
     resolver: zodResolver(placePredictionSchema),
     defaultValues: {
       matchId: match.id,
-      marketId: selectedMarket?.id ?? '',
-      outcomeKey: selectedOutcome?.outcomeKey ?? '',
+      marketId: String(selectedMarket?.id ?? (selectedMarket as any)?.mid ?? ''),
+      outcomeKey: String(selectedOutcome?.outcomeKey ?? (selectedOutcome as any)?.sid ?? ''),
       stake: 0,
       idempotencyKey: IdempotencyManager.getKey(`prediction-${match.id}`),
     },
   });
 
   React.useEffect(() => {
-    methods.setValue('marketId', selectedMarket?.id ?? '');
-    methods.setValue('outcomeKey', selectedOutcome?.outcomeKey ?? '');
+    const mid = String(selectedMarket?.id ?? (selectedMarket as any)?.mid ?? '');
+    const oid = String(selectedOutcome?.outcomeKey ?? (selectedOutcome as any)?.sid ?? '');
+    console.log("🔄 Syncing Form Values:", { mid, oid });
+    methods.setValue('marketId', mid, { shouldValidate: true });
+    methods.setValue('outcomeKey', oid, { shouldValidate: true });
   }, [selectedMarket, selectedOutcome, methods]);
 
   const { watch, handleSubmit, reset } = methods;
@@ -57,37 +71,63 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
   // Use market odds when a market is selected, else fall back to 1.90 default
   const selectedOdds = selectedOutcome?.decimalOdds ?? 1.90;
 
+  const potentialReturnVal = stake && selectedOdds ? stake * selectedOdds : 0;
+  const isOverPayoutLimit = potentialReturnVal > MAX_PAYOUT;
   const potentialReturn = stake && selectedOdds
-    ? (stake * selectedOdds).toFixed(0)
+    ? potentialReturnVal.toFixed(0)
     : '—';
 
+  const isMarketOpen = !selectedMarket || (selectedMarket as any).status === 'OPEN' || (selectedMarket as any).status === 'ACTIVE' || (selectedMarket as any).status === undefined;
 
-  const onSubmit = handleSubmit((data) => {
-    startTransition(() => {
-      // Build Phase 26 DTO: stake + marketId + outcomeKey
-      // If a market was selected via MarketTabs, use that market/outcome.
-      // Otherwise fall back to old match-winner style (for backward compat).
-      const payload: Record<string, unknown> = {
-        matchId: data.matchId,
-        stake: data.stake,
-        marketId: selectedMarket?.id ?? data.marketId,
-        outcomeKey: selectedOutcome?.outcomeKey ?? data.outcomeKey,
-      };
-      placePrediction(
-        payload as any,
-        {
-          onSuccess: () => {
-            toast.success('Prediction placed!', { description: `${formatPoints(data.stake)} staked` });
-            reset({ ...methods.getValues(), idempotencyKey: IdempotencyManager.getKey(`prediction-${match.id}-${Date.now()}`) });
-            onSuccess?.();
-          },
-          onError: (err: Error) => {
-            toast.error('Failed to place prediction', { description: err.message });
-          },
-        }
-      );
-    });
-  });
+
+  const onSubmit = (e: React.FormEvent) => {
+    console.log("🚀 Form Submission Triggered");
+    handleSubmit(
+      (data) => {
+        console.log("✅ Validation Success:", data);
+        startTransition(() => {
+          const payload: Record<string, unknown> = {
+            matchId: data.matchId,
+            stake: data.stake,
+            marketId: (selectedMarket as any)?.id ?? (selectedMarket as any)?.mid ?? data.marketId,
+            outcomeKey: (selectedOutcome as any)?.outcomeKey ?? (selectedOutcome as any)?.sid ?? data.outcomeKey,
+            acceptedOdds: (selectedOutcome as any)?.decimalOdds ?? (selectedOutcome as any)?.odds ?? 1.90,
+          };
+          console.log("📡 Sending Payload:", payload);
+          placePrediction(
+            payload as any,
+            {
+              onSuccess: () => {
+                toast.success('Prediction placed!', { description: `${formatPoints(data.stake)} staked` });
+                reset({ ...methods.getValues(), idempotencyKey: IdempotencyManager.getKey(`prediction-${match.id}-${Date.now()}`) });
+                onSuccess?.();
+              },
+              onError: (err: Error) => {
+                console.error("❌ Placement Error:", err);
+                toast.error('Failed to place prediction', { description: err.message });
+              },
+            }
+          );
+        });
+      },
+      (errors) => {
+        console.error("❌ Validation Errors:", errors);
+      }
+    )(e);
+  };
+
+  const isButtonDisabled = isPending || match.predictionsLocked || !selectedMarket || !selectedOutcome || isOverPayoutLimit || !isMarketOpen;
+  const buttonText = match.predictionsLocked
+    ? 'Predictions locked'
+    : isPending
+      ? 'Placing…'
+      : isOverPayoutLimit
+        ? 'Payout exceeds limit'
+        : !isMarketOpen
+          ? 'Market Suspended'
+          : selectedMarket
+            ? `Place Bet • ${formatOdds(selectedOdds ?? 1)}`
+            : 'Select a Market to Bet';
 
   return (
     <FormProvider {...methods}>
@@ -99,12 +139,18 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
             Selected Outcome
           </Text>
           {selectedMarket && selectedOutcome ? (
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-primary/40 bg-primary/5">
+            <div className={cn(
+              "flex items-center justify-between px-3 py-2.5 rounded-lg border",
+              isMarketOpen ? "border-primary/40 bg-primary/5" : "border-error/40 bg-error/5"
+            )}>
               <div>
                 <p className="text-sm font-medium text-text-primary">{selectedOutcome.label}</p>
-                <p className="text-xs text-text-secondary">{selectedMarket.displayName}</p>
+                <p className="text-xs text-text-secondary">
+                  {selectedMarket.displayName}
+                  {!isMarketOpen && <span className="ml-2 text-error text-[10px] font-bold">SUSPENDED</span>}
+                </p>
               </div>
-              <span className="font-mono text-sm font-semibold text-primary">{formatOdds(selectedOutcome.decimalOdds)}</span>
+              <span className="font-mono text-sm font-semibold text-primary">{formatOdds(selectedOutcome.decimalOdds ?? 1.90)}</span>
             </div>
           ) : (
             <div className="px-3 py-3 rounded-lg border border-dashed border-border bg-background-secondary text-center">
@@ -152,34 +198,34 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
           />
         </div>
 
-        {/* Potential return */}
         <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-tertiary">
           <Text variant="caption" color="secondary">Potential return</Text>
-          <Text variant="caption" weight="semibold" color="success" className="font-mono">
+          <Text variant="caption" weight="semibold" color={isOverPayoutLimit ? "error" : "success"} className="font-mono">
             {potentialReturn !== '—' ? formatPoints(Number(potentialReturn)) : '—'}
           </Text>
         </div>
+        {isOverPayoutLimit && (
+          <Text variant="caption" color="error" className="mt-1 block px-1">
+            Maximum potential payout is {formatPoints(MAX_PAYOUT)}
+          </Text>
+        )}
 
         {/* Submit */}
         <button
           type="submit"
-          disabled={isPending || match.predictionsLocked || !selectedMarket || !selectedOutcome}
+          disabled={isButtonDisabled}
           className={cn(
             'w-full flex items-center justify-center gap-2 py-3 rounded-lg',
-            'font-semibold text-sm bg-primary text-primary-foreground',
-            'hover:opacity-90 active:scale-[0.99] transition-all',
+            'font-semibold text-sm transition-all',
+            isOverPayoutLimit || !isMarketOpen
+              ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+              : 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.99]',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'focus-visible:ring-2 focus-visible:ring-primary'
           )}
         >
           <Icon icon={Zap} size={16} />
-          {match.predictionsLocked
-            ? 'Predictions locked'
-            : isPending
-              ? 'Placing…'
-              : selectedMarket
-                ? `Place Bet • ${formatOdds(selectedOdds ?? 1)}`
-                : 'Select a Market to Bet'}
+          {buttonText}
         </button>
       </form>
     </FormProvider>

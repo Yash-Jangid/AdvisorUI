@@ -13,6 +13,9 @@ import { useAuthStore } from '@/lib/stores/authStore';
 import { formatDate } from '@/lib/utils/formatters';
 import { Market, MarketOutcome } from '@/lib/api/types';
 import { DiamondMarketsPanel } from '@/components/features/match/DiamondMarketsPanel';
+import { Info } from 'lucide-react';
+import { Icon } from '@/components/atoms/Icon';
+import { cn } from '@/lib/utils/cn';
 
 interface MatchDetailPageProps {
   params: Promise<{ id: string }>;
@@ -77,6 +80,32 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           </Text>
         </div>
 
+        {/* Odds Type Legend */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+          <div className="flex gap-3">
+            <div className="mt-0.5 p-1.5 rounded-lg bg-blue-500/10 h-fit">
+              <Icon icon={Info} size={14} className="text-blue-400" />
+            </div>
+            <div>
+              <Text variant="small" weight="semibold" className="text-blue-400">Platform Markets</Text>
+              <Text variant="caption" color="tertiary" className="leading-relaxed">
+                Internal odds managed by the platform. These are stable and follow standard settlement rules.
+              </Text>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="mt-0.5 p-1.5 rounded-lg bg-red-500/10 h-fit">
+              <Icon icon={Info} size={14} className="text-red-400" />
+            </div>
+            <div>
+              <Text variant="small" weight="semibold" className="text-red-400">Live Exchange Odds</Text>
+              <Text variant="caption" color="tertiary" className="leading-relaxed">
+                Real-time feed from external exchanges. Highly volatile prices with Back/Lay liquidity.
+              </Text>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column — scoreboard + market tabs */}
           <div className="lg:col-span-2 space-y-6">
@@ -123,7 +152,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </span>
                 )}
               </div>
-              <DiamondMarketsPanel matchId={id} isLive={match.status === 'LIVE'} />
+              <DiamondMarketsPanel matchId={id} isLive={match.status === 'LIVE'} onSelectOutcome={handleOutcomeSelect as any} />
             </div>
           </div>
 
@@ -135,11 +164,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             {selectedMarket && selectedOutcome && (
               <div className="mb-4 p-3 rounded-lg bg-[rgba(16,185,129,0.08)] border border-[rgba(16,185,129,0.2)]">
                 <p className="text-[11px] text-[var(--color-text-tertiary)] mb-0.5">Market</p>
-                <p className="text-sm font-semibold text-[var(--color-text-primary)]">{selectedMarket.displayName}</p>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">{(selectedMarket as any).displayName ?? (selectedMarket as any).mname}</p>
                 <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1.5 mb-0.5">Your Selection</p>
                 <p className="text-sm font-bold text-[var(--color-accent-primary)]">
-                  {selectedOutcome.label} @ {selectedOutcome.decimalOdds.toFixed(2)}x
+                  {(selectedOutcome as any).label ?? (selectedOutcome as any).nat} @ {((selectedOutcome as any).decimalOdds ?? (selectedOutcome as any).odds ?? 1.90).toFixed(2)}x
                 </p>
+
               </div>
             )}
 
