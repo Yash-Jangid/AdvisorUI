@@ -20,6 +20,13 @@ function OddsButton({
     disabled: boolean;
     onClick: () => void;
 }) {
+    // Support both Diamond (currentOdds/backOdds) and platform (decimalOdds) markets
+    const displayOdds = outcome.currentOdds ?? outcome.backOdds ?? outcome.decimalOdds ?? 0;
+    // Backend stores impliedProbability already as a percentage e.g. 86.21
+    // Platform markets store it as a decimal e.g. 0.8621 — detect by magnitude
+    const prob = outcome.impliedProbability ?? 0;
+    const displayProb = prob > 1 ? prob : prob * 100;
+
     return (
         <button
             onClick={onClick}
@@ -32,10 +39,10 @@ function OddsButton({
         >
             <span className="text-[11px] font-medium truncate w-full text-center">{outcome.label}</span>
             <span className={`text-base font-bold tabular-nums ${selected ? 'text-[var(--color-accent-primary)]' : 'text-[var(--color-text-primary)]'}`}>
-                {outcome.decimalOdds.toFixed(2)}x
+                {displayOdds.toFixed(2)}x
             </span>
             <span className="text-[10px] text-[var(--color-text-tertiary)]">
-                {(outcome.impliedProbability * 100).toFixed(0)}%
+                {displayProb.toFixed(0)}%
             </span>
         </button>
     );
@@ -79,15 +86,20 @@ export function MarketCard({ market, onSelectOutcome, selectedOutcomeKey }: Mark
 
             {/* Outcomes grid */}
             <div className={`flex gap-2 flex-wrap`}>
-                {market.outcomes.map((outcome, oidx) => (
-                    <OddsButton
-                        key={outcome.outcomeKey || `outcome-${oidx}`}
-                        outcome={outcome}
-                        selected={selectedOutcomeKey === outcome.outcomeKey}
-                        disabled={isLocked}
-                        onClick={() => onSelectOutcome?.(market.id, outcome)}
-                    />
-                ))}
+                {(market.outcomes || [])
+                    .filter((o): o is MarketOutcome => o != null)
+                    .map((outcome, oidx) => {
+                        const marketId = market.id ?? (market as any)._id as string;
+                        return (
+                            <OddsButton
+                                key={outcome.outcomeKey || `outcome-${oidx}`}
+                                outcome={outcome}
+                                selected={selectedOutcomeKey === outcome.outcomeKey}
+                                disabled={isLocked}
+                                onClick={() => onSelectOutcome?.(marketId, outcome)}
+                            />
+                        );
+                    })}
             </div>
 
             {/* Settled result */}
@@ -95,15 +107,15 @@ export function MarketCard({ market, onSelectOutcome, selectedOutcomeKey }: Mark
                 <div className="flex items-center gap-2 pt-1 border-t border-[var(--color-border)]">
                     <span className="text-[11px] text-[var(--color-text-tertiary)]">Result:</span>
                     <span className="text-[11px] font-semibold text-emerald-400">
-                        {market.outcomes.find(o => o.outcomeKey === market.winningOutcomeKey)?.label ?? market.winningOutcomeKey}
+                        {market.outcomes.find(o => o != null && o.outcomeKey === market.winningOutcomeKey)?.label ?? market.winningOutcomeKey}
                     </span>
                 </div>
             )}
 
             {/* Liquidity footer */}
             <div className="flex justify-between text-[10px] text-[var(--color-text-tertiary)] pt-1 border-t border-[var(--color-border)]">
-                <span>{market.totalBetsCount.toLocaleString()} bets</span>
-                <span>{market.totalStakedPoints.toLocaleString()} pts staked</span>
+                <span>{(market.totalBetsCount ?? market.totalBets ?? 0).toLocaleString()} bets</span>
+                <span>{(market.totalStakedPoints ?? market.totalStake ?? 0).toLocaleString()} pts staked</span>
             </div>
         </div>
     );

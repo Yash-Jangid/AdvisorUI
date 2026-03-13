@@ -136,8 +136,9 @@ export const useLiveDiamondMarkets = (matchId: string) => {
     source.addEventListener('markets-update', (e: any) => {
       try {
         const payload = JSON.parse(e.data);
-        // Overwrite the query cache directly with the new array of markets
-        qc.setQueryData(matchKeys.diamondMarkets(matchId), payload);
+        // Server sends { source, fetchedAt, markets: [...] } — extract the array
+        const markets = Array.isArray(payload) ? payload : (payload?.markets ?? payload);
+        qc.setQueryData(matchKeys.diamondMarkets(matchId), markets);
       } catch {
         // Ignore JSON parse errors
       }

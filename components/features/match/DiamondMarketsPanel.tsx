@@ -186,6 +186,9 @@ export function DiamondMarketsPanel({ matchId, isLive = false }: DiamondMarketsP
   // Open SSE connection for live updates (writes back into the same React Query cache key)
   useLiveDiamondMarkets(isLive ? matchId : '');
 
+  // Safeguard: Extract array from envelope if old cached data is still in React Query
+  const marketsArray = Array.isArray(markets) ? markets : ((markets as any)?.markets || []);
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -196,7 +199,7 @@ export function DiamondMarketsPanel({ matchId, isLive = false }: DiamondMarketsP
     );
   }
 
-  if (!markets || markets.length === 0) {
+  if (marketsArray.length === 0) {
     return (
       <div className="glass-card rounded-xl p-6 text-center">
         <p className="text-text-secondary text-sm">
@@ -208,7 +211,7 @@ export function DiamondMarketsPanel({ matchId, isLive = false }: DiamondMarketsP
 
   return (
     <div className="space-y-3">
-      {markets.map((market: DiamondMarket, idx: number) => (
+      {marketsArray.map((market: DiamondMarket, idx: number) => (
         <MarketCard key={`${market.mid ?? market.mname ?? idx}-${idx}`} market={market} />
       ))}
     </div>

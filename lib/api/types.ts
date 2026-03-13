@@ -109,17 +109,28 @@ export interface Match {
 export interface MarketOutcome {
   outcomeKey: string;
   label: string;
-  decimalOdds: number;
-  impliedProbability: number;
+  /** Primary odds field used by the backend for Diamond markets */
+  currentOdds?: number;
+  /** decimalOdds is an alias for currentOdds — keep for backward compat */
+  decimalOdds?: number;
+  backOdds?: number;
+  layOdds?: number;
+  impliedProbability?: number;
 }
 
 export type MarketStatus = 'OPEN' | 'LOCKED' | 'SUSPENDED' | 'SETTLED' | 'VOID';
+
+// Frontend-native trigger names (used by platform markets)
+// Backend (Diamond) stores 'POST_MATCH' | 'PRE_MATCH' — both map to 'on_match_end'
 export type MarketSettlementTrigger =
   | 'on_toss'
   | 'on_ball'
   | 'on_over_end'
   | 'on_innings_end'
-  | 'on_match_end';
+  | 'on_match_end'
+  // Backend / Diamond values — normalised to 'on_match_end' in MarketTabs
+  | 'POST_MATCH'
+  | 'PRE_MATCH';
 
 export const MARKET_TIER_LABELS: Record<MarketSettlementTrigger, string> = {
   on_toss: 'Toss',
@@ -127,23 +138,29 @@ export const MARKET_TIER_LABELS: Record<MarketSettlementTrigger, string> = {
   on_over_end: 'Over',
   on_innings_end: 'Innings',
   on_match_end: 'Match',
+  POST_MATCH: 'Match',
+  PRE_MATCH: 'Pre-Match',
 };
 
 export interface Market {
   id: string;
+  _id?: string;
   matchId: string;
   marketType: string;
   displayName: string;
   status: MarketStatus;
   settlementTrigger: MarketSettlementTrigger;
+  providerMarketId?: number;
   overNumber?: number | null;
   ballNumber?: number | null;
   line?: number | null;
   playerName?: string | null;
   outcomes: MarketOutcome[];
   winningOutcomeKey?: string | null;
-  totalBetsCount: number;
-  totalStakedPoints: number;
+  totalBetsCount?: number;
+  totalStakedPoints?: number;
+  totalBets?: number;
+  totalStake?: number;
   lockedAt?: string | null;
   settledAt?: string | null;
   createdAt: string;
