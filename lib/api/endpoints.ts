@@ -33,6 +33,12 @@ export const ENDPOINTS = {
     byId: (matchId: string, marketId: string) => `/matches/${matchId}/markets/${marketId}`,
   },
 
+  // ── Betting Engine (V2) ───────────────────────────────────────────────────
+  betting: {
+    placeTicket: () => '/bet-tickets',
+    myTicketsForMarket: (marketId: string) => `/bet-tickets/my?marketId=${marketId}`,
+  },
+
   // ── Predictions ───────────────────────────────────────────────────────────
   predictions: {
     place: () => '/predictions',
@@ -94,5 +100,6 @@ export const ENDPOINTS = {
     data: (type: number) => `/casino/data/${type}`,
     result: (type: number) => `/casino/result/${type}`,
     detailResult: (type: number, mid: number) => `/casino/result/${type}/${mid}`,
+    activeMarket: (cid: number) => `/casino/active-market/${cid}`,
   },
 } as const;

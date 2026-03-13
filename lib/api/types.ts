@@ -322,3 +322,16 @@ export interface CasinoDetailResult extends CasinoRoundResult {
   round_id?: string;
   cards?: Record<string, string[]>;
 }
+
+export interface CasinoSelection {
+  id: string;
+  label: string;
+  currentOdds: string;
+}
+
+export interface CasinoActiveMarket {
+  marketId: string;
+  status: string;
+  roundId: string;
+  selections: CasinoSelection[];
+}

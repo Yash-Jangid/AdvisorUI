@@ -1,7 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../client';
 import { ENDPOINTS } from '../endpoints';
-import { CasinoTableId, CasinoLiveData, CasinoRoundResult, CasinoDetailResult } from '../types';
+import {
+  CasinoTableId,
+  CasinoLiveData,
+  CasinoRoundResult,
+  CasinoDetailResult,
+  CasinoActiveMarket,
+} from '../types';
 
 // ─── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -11,6 +17,7 @@ export const casinoKeys = {
   liveData: (type: number) => [...casinoKeys.all, 'live-data', type] as const,
   lastResult: (type: number) => [...casinoKeys.all, 'last-result', type] as const,
   detailResult: (type: number, mid: number) => [...casinoKeys.all, 'detail-result', type, mid] as const,
+  activeMarket: (cid: number) => [...casinoKeys.all, 'active-market', cid] as const,
 };
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
@@ -58,6 +65,22 @@ export function useCasinoLastResult(type: number, enabled = true) {
     enabled,
     refetchInterval: 5000, // 5 seconds polling
     staleTime: 4000,
+  });
+}
+
+/**
+ * Fetch the active Prisma Market + selections for the current casino round.
+ * This powers the Betting Panel on the right side of the casino table page.
+ */
+export function useCasinoActiveMarket(cid: number, enabled = true) {
+  return useQuery({
+    queryKey: casinoKeys.activeMarket(cid),
+    queryFn: async () => {
+      return await api.get<CasinoActiveMarket | null>(ENDPOINTS.casino.activeMarket(cid));
+    },
+    enabled,
+    refetchInterval: 3000,
+    staleTime: 2000,
   });
 }
 
