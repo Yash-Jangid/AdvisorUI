@@ -3,7 +3,7 @@ import { api } from '@/lib/api/client';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import { CONFIG } from '@/lib/constants/config';
 import { IdempotencyManager } from '@/lib/utils/idempotency';
-import type { Prediction, PlacePredictionDto, PaginatedResponse } from '@/lib/api/types';
+import type { BetTicket, PaginatedResponse } from '@/lib/api/types';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -16,11 +16,11 @@ export const predictionKeys = {
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 /** My prediction history — infinite scroll, feeds VirtualizedList */
-export const useMyPredictions = () =>
+export const useMyPredictions = (gameType?: string) =>
   useInfiniteQuery({
-    queryKey: predictionKeys.my(),
+    queryKey: [...predictionKeys.my(), gameType],
     queryFn: ({ pageParam = 1 }) =>
-      api.get<PaginatedResponse<Prediction>>(ENDPOINTS.predictions.my(pageParam as number)),
+      api.get<PaginatedResponse<BetTicket>>(ENDPOINTS.betting.myTickets(pageParam as number, 20, gameType)),
     getNextPageParam: (last) => last.nextPage ?? undefined,
     staleTime: CONFIG.query.staleTime,
     initialPageParam: 1,
@@ -30,7 +30,7 @@ export const useMyPredictions = () =>
 export const usePredictionsByMatch = (matchId: string) =>
   useQuery({
     queryKey: predictionKeys.byMatch(matchId),
-    queryFn: () => api.get<Prediction[]>(ENDPOINTS.predictions.byMatch(matchId)),
+    queryFn: () => api.get<BetTicket[]>(ENDPOINTS.predictions.byMatch(matchId)),
     enabled: !!matchId,
     staleTime: CONFIG.query.liveStaleTime,
   });
@@ -50,7 +50,7 @@ export const usePlacePrediction = () => {
       const idempotencyKey = IdempotencyManager.getKey(
         `prediction-${String(payload.matchId)}-${String(payload.outcomeKey ?? payload.outcome)}-${String(payload.marketId ?? '')}`
       );
-      return api.post<Prediction>(ENDPOINTS.predictions.place(), {
+      return api.post<BetTicket>(ENDPOINTS.betting.placeTicket(), {
         ...payload,
         idempotencyKey,
       });
@@ -64,13 +64,13 @@ export const usePlacePrediction = () => {
       const previousData = qc.getQueryData(predictionKeys.my());
 
       // 3. Optimistic insert — prepend to first page
-      qc.setQueryData(predictionKeys.my(), (old: { pages: Prediction[][] } | undefined) => {
+      qc.setQueryData(predictionKeys.my(), (old: { pages: BetTicket[][] } | undefined) => {
         if (!old) return old;
         return {
           ...old,
           pages: [
             [
-              { ...newPrediction, id: 'optimistic', status: 'PENDING' } as Prediction,
+              { ...newPrediction, id: 'optimistic', status: 'PENDING', createdAt: new Date().toISOString() } as BetTicket,
               ...old.pages[0]!,
             ],
             ...old.pages.slice(1),

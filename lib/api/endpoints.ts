@@ -36,7 +36,11 @@ export const ENDPOINTS = {
   // ── Betting Engine (V2) ───────────────────────────────────────────────────
   betting: {
     placeTicket: () => '/bet-tickets',
-    myTicketsForMarket: (marketId: string) => `/bet-tickets/my?marketId=${marketId}`,
+    myTickets: (page = 1, limit = 20, gameType?: string) => {
+      let url = `/bet-tickets/my?page=${page}&limit=${limit}`;
+      if (gameType) url += `&gameType=${gameType}`;
+      return url;
+    },
   },
 
   // ── Predictions ───────────────────────────────────────────────────────────

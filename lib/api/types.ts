@@ -177,10 +177,44 @@ export interface LiveMatchScore {
   updatedAt: string;
 }
 
-// ── Prediction ────────────────────────────────────────────────────────────────
+// ── Bet Ticket (V2) ──────────────────────────────────────────────────────────
+
+export type TicketStatus = 'PENDING' | 'WON' | 'LOST' | 'REFUNDED' | 'CANCELLED';
+
+export interface BetTicket {
+  id: string;
+  userId: string;
+  marketId: string;
+  selectionId: string;
+  oddsAtPlacement: number;
+  stake: number;
+  potentialPayout: number;
+  status: TicketStatus;
+  settledAt: string | null;
+  createdAt: string;
+  // Included relations
+  selection?: {
+    id: string;
+    label: string;
+  };
+  market?: {
+    id: string;
+    displayName: string;
+    marketType: string;
+    gameEvent: {
+      id: string;
+      title: string;
+      gameEngine: {
+        id: string;
+        name: string;
+      };
+    };
+  };
+}
+
+// ── Obsolete Prediction (V1 - deprecated) ───────────────────────────────────
 
 export type PredictionSide = 'BACK' | 'LAY';
-export type PredictionTeam = 'A' | 'B' | 'DRAW';
 export type PredictionStatus = 'PENDING' | 'WON' | 'LOST' | 'REFUNDED' | 'CANCELLED';
 export type PredictionOutcome = 'TEAM_A_WIN' | 'TEAM_B_WIN' | 'DRAW';
 
