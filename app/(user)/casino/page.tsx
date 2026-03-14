@@ -8,6 +8,7 @@ import { Icon } from '@/components/atoms/Icon';
 import { useCasinoTables } from '@/lib/api/hooks/useCasino';
 import { ROUTES } from '@/lib/constants/routes';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
+import Image from 'next/image';
 
 export default function CasinoLobbyPage() {
   const { data: tables, isLoading, isError } = useCasinoTables();
@@ -77,10 +78,8 @@ function CasinoGameCard({ type, name }: { type: number; name: string }) {
       href={ROUTES.user.casinoTable(type)}
       className="group relative flex h-64 flex-col justify-end overflow-hidden rounded-xl border border-border bg-background-secondary transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1"
     >
-      {/* Background Graphic Placeholder */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-background-secondary to-background-tertiary">
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-background-secondary to-background-tertiary" style={{ backgroundImage: `url('https://sitethemedata.com/casino_icons/bc/roulette/400040324.jpg')` }} >
         <div className="absolute inset-0 bg-black/40 mix-blend-multiply transition-opacity group-hover:opacity-20" />
-        {/* We would load specific thumbnails based on 'type' or 'name', but a generic pattern works for now */}
         <div className="flex h-full w-full items-center justify-center opacity-30">
           <Icon icon={Dices} size={120} className="text-primary/20 transition-transform duration-500 group-hover:scale-110" />
         </div>

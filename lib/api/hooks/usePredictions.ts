@@ -19,8 +19,73 @@ export const predictionKeys = {
 export const useMyPredictions = (gameType?: string) =>
   useInfiniteQuery({
     queryKey: [...predictionKeys.my(), gameType],
-    queryFn: ({ pageParam = 1 }) =>
-      api.get<PaginatedResponse<BetTicket>>(ENDPOINTS.betting.myTickets(pageParam as number, 20, gameType)),
+    queryFn: async ({ pageParam = 1 }) => {
+      const page = pageParam as number;
+      if (gameType === 'CASINO') {
+        const rawCasino = await api.get<any[]>(ENDPOINTS.betting.myTickets(page, 20, gameType));
+        const casinoData: BetTicket[] = (rawCasino ?? []).map((item: any) => ({
+          id: item.id ?? `casino-${page}-${Math.random()}`,
+          userId: item.userId,
+          marketId: item.marketId,
+          selectionId: item.selectionId,
+          oddsAtPlacement: item.oddsAtPlacement,
+          stake: item.stake,
+          potentialPayout: item.potentialPayout,
+          status: item.status,
+          settledAt: item.settledAt,
+          createdAt: item.createdAt,
+          selection: item.selection,
+          market: item.market,
+        }));
+        return {
+          data: casinoData,
+          total: casinoData.length,
+          page,
+          limit: 20,
+          nextPage: rawCasino.length === 20 ? page + 1 : null,
+          prevPage: page > 1 ? page - 1 : null,
+        } as PaginatedResponse<BetTicket>;
+      }
+      const rawData = await api.get<any[]>(ENDPOINTS.predictions.my(page, 20));
+      const mappedData: BetTicket[] = rawData.map(item => ({
+        id: item._id || item.id,
+        userId: item.userId,
+        marketId: item.marketId,
+        selectionId: item.outcomeKey,
+        oddsAtPlacement: item.oddsAtPlacement,
+        stake: item.amount,
+        potentialPayout: item.potentialPayout,
+        status: item.status,
+        settledAt: item.settledAt,
+        createdAt: item.createdAt,
+        selection: {
+          id: item.outcomeKey,
+          label: item.outcomeLabel || item.outcome,
+        },
+        market: {
+          id: item.marketId,
+          displayName: item.marketType.replace(/_/g, ' '),
+          marketType: item.marketType,
+          gameEvent: {
+            id: item.matchId,
+            title: item.matchTitle ?? 'Cricket Match',
+            gameEngine: {
+              id: 'v1',
+              name: 'CRICKET',
+            },
+          },
+        },
+      }));
+      
+      return {
+        data: mappedData,
+        total: mappedData.length,
+        page,
+        limit: 20,
+        nextPage: rawData.length === 20 ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null,
+      } as PaginatedResponse<BetTicket>;
+    },
     getNextPageParam: (last) => last.nextPage ?? undefined,
     staleTime: CONFIG.query.staleTime,
     initialPageParam: 1,
@@ -50,7 +115,7 @@ export const usePlacePrediction = () => {
       const idempotencyKey = IdempotencyManager.getKey(
         `prediction-${String(payload.matchId)}-${String(payload.outcomeKey ?? payload.outcome)}-${String(payload.marketId ?? '')}`
       );
-      return api.post<BetTicket>(ENDPOINTS.betting.placeTicket(), {
+      return api.post<BetTicket>(ENDPOINTS.predictions.place(), {
         ...payload,
         idempotencyKey,
       });

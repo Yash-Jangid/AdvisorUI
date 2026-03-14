@@ -41,6 +41,7 @@ const rootAdminNavItems = [
   { href: ROUTES.admin.marketConfigs, icon: Settings, label: 'Market Configs' },
   { href: ROUTES.admin.treasury, icon: Wallet, label: 'Treasury' },
   { href: ROUTES.admin.auditLogs, icon: Activity, label: 'Audit Logs' },
+  { href: ROUTES.admin.systemConfig, icon: Settings, label: 'System Config' },
 ] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
