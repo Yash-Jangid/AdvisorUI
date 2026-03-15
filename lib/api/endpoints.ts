@@ -41,6 +41,7 @@ export const ENDPOINTS = {
       if (gameType) url += `&gameType=${gameType}`;
       return url;
     },
+    myTicketsForMarket: (marketId: string) => `/bet-tickets/my?marketId=${marketId}`,
   },
 
   // ── Predictions ───────────────────────────────────────────────────────────
