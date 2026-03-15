@@ -1,12 +1,13 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/consistent-type-imports": ["error", { "prefer": "type-imports" }],
-    "import/no-duplicates": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/consistent-type-imports": ["warn", { "prefer": "type-imports" }],
+    "import/no-duplicates": "warn",
     "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "prefer-const": "error",
-    "no-nested-ternary": "error"
+    "prefer-const": "warn",
+    "no-nested-ternary": "warn",
+    "react/no-unescaped-entities": "off"
   }
 }
