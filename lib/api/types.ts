@@ -98,6 +98,7 @@ export interface Match {
   streamingUrl?: string;
   streamingProvider?: string;
   predictionsLocked: boolean;
+  predictionsEnabled?: boolean;
   predictionCount: number;
   totalPool: number;
   createdAt: string;

@@ -167,7 +167,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 <p className="text-sm font-semibold text-[var(--color-text-primary)]">{(selectedMarket as any).displayName ?? (selectedMarket as any).mname}</p>
                 <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1.5 mb-0.5">Your Selection</p>
                 <p className="text-sm font-bold text-[var(--color-accent-primary)]">
-                  {(selectedOutcome as any).label ?? (selectedOutcome as any).nat} @ {((selectedOutcome as any).decimalOdds ?? (selectedOutcome as any).odds ?? 1.90).toFixed(2)}x
+                  {(selectedOutcome as any).label ?? (selectedOutcome as any).nat} @ {((selectedOutcome as any).decimalOdds ?? (selectedOutcome as any).currentOdds ?? (selectedOutcome as any).backOdds ?? (selectedOutcome as any).odds ?? 1.90).toFixed(2)}x
                 </p>
 
               </div>

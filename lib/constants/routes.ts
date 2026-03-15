@@ -37,6 +37,7 @@ export const ROUTES = {
     treasury: '/admin/treasury',
     marketConfigs: '/admin/market-configs',
     systemConfig: '/admin/system-config',
+    settlement: '/admin/settlement',
   },
 } as const;
 
@@ -57,6 +58,7 @@ export const PROTECTED_ROUTES = [
   ROUTES.admin.treasury,
   ROUTES.admin.marketConfigs,
   ROUTES.admin.systemConfig,
+  ROUTES.admin.settlement,
 ] as const;
 
 export const ADMIN_ROUTES = [
@@ -68,4 +70,5 @@ export const ADMIN_ROUTES = [
   ROUTES.admin.treasury,
   ROUTES.admin.marketConfigs,
   ROUTES.admin.systemConfig,
+  ROUTES.admin.settlement,
 ] as const;

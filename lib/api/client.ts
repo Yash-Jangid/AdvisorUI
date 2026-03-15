@@ -79,7 +79,12 @@ class ApiClient {
     this.http.interceptors.response.use(
       (response) => response,
       async (error: unknown) => {
-        if (!axios.isAxiosError(error)) throw error;
+        if (!axios.isAxiosError(error)) {
+          console.error('[API Client Raw Error]', error);
+          throw error;
+        }
+
+        console.error(`[API Client Axios Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, error.message, error.code);
 
         const status = error.response?.status ?? 0;
         const payload = error.response?.data as ApiError | undefined;

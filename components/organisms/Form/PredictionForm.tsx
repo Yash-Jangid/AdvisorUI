@@ -37,7 +37,7 @@ const MAX_PAYOUT = 100000; // Platform default limit
 
 export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, selectedOutcome }: PredictionFormProps) {
   const { mutate: placePrediction, isPending } = usePlacePrediction();
-  const [, startTransition] = useTransition();
+  const [isTransitionPending, startTransition] = useTransition();
 
   console.log("🖥️ PredictionForm Render:", {
     selectedMarket,
@@ -69,7 +69,7 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
   const stake = watch('stake');
 
   // Use market odds when a market is selected, else fall back to 1.90 default
-  const selectedOdds = selectedOutcome?.decimalOdds ?? 1.90;
+  const selectedOdds = selectedOutcome?.decimalOdds ?? (selectedOutcome as any)?.currentOdds ?? (selectedOutcome as any)?.backOdds ?? (selectedOutcome as any)?.odds ?? 1.90;
 
   const potentialReturnVal = stake && selectedOdds ? stake * selectedOdds : 0;
   const isOverPayoutLimit = potentialReturnVal > MAX_PAYOUT;
@@ -81,6 +81,9 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
 
 
   const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isPending || isTransitionPending) return;
+    
     console.log("🚀 Form Submission Triggered");
     handleSubmit(
       (data) => {
@@ -91,7 +94,7 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
             stake: data.stake,
             marketId: (selectedMarket as any)?.id ?? (selectedMarket as any)?.mid ?? data.marketId,
             outcomeKey: (selectedOutcome as any)?.outcomeKey ?? (selectedOutcome as any)?.sid ?? data.outcomeKey,
-            acceptedOdds: (selectedOutcome as any)?.decimalOdds ?? (selectedOutcome as any)?.odds ?? 1.90,
+            acceptedOdds: selectedOdds,
           };
           console.log("📡 Sending Payload:", payload);
           placePrediction(
@@ -116,10 +119,11 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
     )(e);
   };
 
-  const isButtonDisabled = isPending || match.predictionsLocked || !selectedMarket || !selectedOutcome || isOverPayoutLimit || !isMarketOpen;
+  const isSubmitting = isPending || isTransitionPending;
+  const isButtonDisabled = isSubmitting || match.predictionsLocked || !selectedMarket || !selectedOutcome || isOverPayoutLimit || !isMarketOpen;
   const buttonText = match.predictionsLocked
     ? 'Predictions locked'
-    : isPending
+    : isSubmitting
       ? 'Placing…'
       : isOverPayoutLimit
         ? 'Payout exceeds limit'
@@ -146,11 +150,11 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
               <div>
                 <p className="text-sm font-medium text-text-primary">{selectedOutcome.label}</p>
                 <p className="text-xs text-text-secondary">
-                  {selectedMarket.displayName}
+                  {selectedMarket.displayName ?? (selectedMarket as any).mname}
                   {!isMarketOpen && <span className="ml-2 text-error text-[10px] font-bold">SUSPENDED</span>}
                 </p>
               </div>
-              <span className="font-mono text-sm font-semibold text-primary">{formatOdds(selectedOutcome.decimalOdds ?? 1.90)}</span>
+              <span className="font-mono text-sm font-semibold text-primary">{formatOdds(selectedOdds)}</span>
             </div>
           ) : (
             <div className="px-3 py-3 rounded-lg border border-dashed border-border bg-background-secondary text-center">

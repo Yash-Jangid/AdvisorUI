@@ -121,3 +121,34 @@ export const useSettleMarket = () =>
         winningOutcomeKey,
       }),
   });
+
+/** Toggle prediction availability flag for a specific match */
+export const useToggleMatchPredictionAvailability = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matchId, enabled }: { matchId: string; enabled: boolean }) =>
+      api.patch<{ message: string; enabled: boolean }>(`/admin/matches/${matchId}/prediction-availability`, {
+        enabled,
+      }),
+    onMutate: async ({ matchId, enabled }) => {
+      // Optimistic update for admin match list
+      await qc.cancelQueries({ queryKey: adminMatchKeys.allMatches() });
+      const previous = qc.getQueryData<Match[]>(adminMatchKeys.allMatches());
+      if (previous) {
+        qc.setQueryData<Match[]>(
+          adminMatchKeys.allMatches(),
+          previous.map((m) => (m.id === matchId ? { ...m, predictionsEnabled: enabled } : m))
+        );
+      }
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(adminMatchKeys.allMatches(), context.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: adminMatchKeys.allMatches() });
+    },
+  });
+};

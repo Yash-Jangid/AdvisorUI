@@ -4,7 +4,7 @@ import React from 'react';
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Trophy, Zap, TrendingUp, Wallet, Settings, Shield, User, Users, LogOut, Activity, BarChart2, Dices
+  LayoutDashboard, Trophy, Zap, TrendingUp, Wallet, Settings, Shield, User, Users, LogOut, Activity, BarChart2, Dices, ShieldAlert
 } from 'lucide-react';
 import { Icon } from '@/components/atoms/Icon';
 import { Text } from '@/components/atoms/Text';
@@ -42,6 +42,7 @@ const rootAdminNavItems = [
   { href: ROUTES.admin.treasury, icon: Wallet, label: 'Treasury' },
   { href: ROUTES.admin.auditLogs, icon: Activity, label: 'Audit Logs' },
   { href: ROUTES.admin.systemConfig, icon: Settings, label: 'System Config' },
+  { href: ROUTES.admin.settlement, icon: ShieldAlert, label: 'Settlement Console' },
 ] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────

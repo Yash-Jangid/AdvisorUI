@@ -7,6 +7,7 @@ import {
   useAdminMatchBook,
   useSyncMatches,
   useSettleMatch,
+  useToggleMatchPredictionAvailability,
 } from '@/lib/api/hooks/useAdminMatches';
 import { useMatchDiamondMarkets } from '@/lib/api/hooks/useMatches';
 import type { Match } from '@/lib/api/types';
@@ -141,9 +142,9 @@ function ManageMarketsDrawer({ matchId, matchTitle, onClose }: {
                       <span className="font-semibold text-white uppercase text-sm">{market.mname}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">ID: {market.mid}</span>
                       {market.status === 'OPEN' || market.status === 'ACTIVE' ? (
-                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">OPEN</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">OPEN</span>
                       ) : (
-                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">{market.status}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">{market.status}</span>
                       )}
                     </div>
                   </div>
@@ -159,8 +160,8 @@ function ManageMarketsDrawer({ matchId, matchTitle, onClose }: {
                       </thead>
                       <tbody>
                         {market.section.map((runner: any, ri: number) => {
-                          const backOdds = runner.odds?.filter((o: any) => o.otype === 'back').sort((a:any, b:any) => b.odds - a.odds)[0];
-                          const layOdds = runner.odds?.filter((o: any) => o.otype === 'lay').sort((a:any, b:any) => a.odds - b.odds)[0];
+                          const backOdds = runner.odds?.filter((o: any) => o.otype === 'back').sort((a: any, b: any) => b.odds - a.odds)[0];
+                          const layOdds = runner.odds?.filter((o: any) => o.otype === 'lay').sort((a: any, b: any) => a.odds - b.odds)[0];
                           return (
                             <tr key={`runner-${runner.sid ?? ri}-${ri}`} className="border-b border-zinc-800/30 last:border-0">
                               <td className="py-2 text-zinc-300 font-medium">{runner.nat}</td>
@@ -176,27 +177,27 @@ function ManageMarketsDrawer({ matchId, matchTitle, onClose }: {
                       </tbody>
                     </table>
                   ) : market.mname === 'Fancy' ? (
-                     <div className="flex gap-4 overflow-x-auto pb-2">
-                       {market.section?.map((runner: any, ri: number) => {
-                         const yesOdds = runner.odds?.find((o:any) => o.otype === 'yes');
-                         const noOdds = runner.odds?.find((o:any) => o.otype === 'no');
-                         return (
-                           <div key={`fancy-${runner.sid ?? ri}-${ri}`} className="min-w-[120px] border border-zinc-800 rounded bg-zinc-950 p-2">
-                             <p className="text-xs text-zinc-300 mb-2 truncate" title={runner.nat}>{runner.nat}</p>
-                             <div className="flex justify-between items-center text-[10px]">
-                               <div className="text-center">
-                                 <p className="text-pink-400 font-bold bg-pink-500/10 px-2 py-1 rounded">{noOdds ? noOdds.odds : '-'}</p>
-                                 <p className="text-zinc-500 mt-1">NO / {noOdds ? noOdds.size : '-'}</p>
-                               </div>
-                               <div className="text-center">
-                                 <p className="text-blue-400 font-bold bg-blue-500/10 px-2 py-1 rounded">{yesOdds ? yesOdds.odds : '-'}</p>
-                                 <p className="text-zinc-500 mt-1">YES / {yesOdds ? yesOdds.size : '-'}</p>
-                               </div>
-                             </div>
-                           </div>
-                         );
-                       })}
-                     </div>
+                    <div className="flex gap-4 overflow-x-auto pb-2">
+                      {market.section?.map((runner: any, ri: number) => {
+                        const yesOdds = runner.odds?.find((o: any) => o.otype === 'yes');
+                        const noOdds = runner.odds?.find((o: any) => o.otype === 'no');
+                        return (
+                          <div key={`fancy-${runner.sid ?? ri}-${ri}`} className="min-w-[120px] border border-zinc-800 rounded bg-zinc-950 p-2">
+                            <p className="text-xs text-zinc-300 mb-2 truncate" title={runner.nat}>{runner.nat}</p>
+                            <div className="flex justify-between items-center text-[10px]">
+                              <div className="text-center">
+                                <p className="text-pink-400 font-bold bg-pink-500/10 px-2 py-1 rounded">{noOdds ? noOdds.odds : '-'}</p>
+                                <p className="text-zinc-500 mt-1">NO / {noOdds ? noOdds.size : '-'}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-blue-400 font-bold bg-blue-500/10 px-2 py-1 rounded">{yesOdds ? yesOdds.odds : '-'}</p>
+                                <p className="text-zinc-500 mt-1">YES / {yesOdds ? yesOdds.size : '-'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <p className="text-xs text-zinc-500">Preview not available for this market type.</p>
                   )}
@@ -292,8 +293,11 @@ function MatchRow({ match, onViewBook, onManageMarkets, onSettle }: {
   onSettle: () => void;
 }) {
   const [showCounts, setShowCounts] = useState(false);
+  const { mutate: togglePredictions, isPending: toggling } = useToggleMatchPredictionAvailability();
   const statusKey = match.status ?? 'UPCOMING';
   const status = STATUS_MAP[statusKey] ?? STATUS_MAP['UPCOMING'];
+
+  const predictionsEnabled = match.predictionsEnabled !== false; // defaults to true
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-600 transition-colors">
@@ -320,7 +324,26 @@ function MatchRow({ match, onViewBook, onManageMarkets, onSettle }: {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg border border-zinc-700/50 mr-2">
+            <span className="text-xs font-semibold text-zinc-300">
+              Predictions: {predictionsEnabled ? 'ON' : 'OFF'}
+            </span>
+            <button
+              onClick={() => togglePredictions({ matchId: match.id, enabled: !predictionsEnabled })}
+              disabled={toggling}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition-colors border-2 border-transparent ${
+                predictionsEnabled ? 'bg-green-500' : 'bg-zinc-600'
+              } disabled:opacity-50`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                  predictionsEnabled ? 'translate-x-[0.4rem]' : '-translate-x-[0.4rem]'
+                }`}
+              />
+            </button>
+          </div>
+          
           <button
             onClick={onManageMarkets}
             className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-semibold"

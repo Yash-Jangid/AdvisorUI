@@ -28,7 +28,7 @@ export const useUpcomingMatches = () =>
       // Guard: backend returns a plain array; if shape is wrong, return empty
       return Array.isArray(data) ? data : [];
     },
-    staleTime: CONFIG.query.staleTime,
+    staleTime: 0,
     refetchInterval: 60_000,
   });
 
@@ -40,7 +40,7 @@ export const useLiveMatches = () =>
       const data = await api.get<Match[]>(ENDPOINTS.matches.live());
       return Array.isArray(data) ? data : [];
     },
-    staleTime: CONFIG.query.liveStaleTime,
+    staleTime: 0,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
@@ -67,17 +67,48 @@ export const useLiveScore = (matchId: string) => {
 
     const source = api.sse(ENDPOINTS.matches.sse(matchId));
 
+    // The default message event (fallback)
     source.onmessage = (e: MessageEvent<string>) => {
       try {
         const score = JSON.parse(e.data) as LiveMatchScore;
-        // Only update cache if this SSE event is for our match
         if (score.matchId === matchId) {
           qc.setQueryData(matchKeys.liveScore(matchId), score);
         }
-      } catch {
-        // Malformed SSE event — ignore
-      }
+      } catch {}
     };
+
+    // Explicitly listening for the named SSE event 'score-update'
+    source.addEventListener('score-update', (e: any) => {
+      try {
+        const score = JSON.parse(e.data) as LiveMatchScore;
+        if (score.matchId === matchId) {
+          qc.setQueryData(matchKeys.liveScore(matchId), score);
+        }
+      } catch {}
+    });
+
+    // Intercept metadata/status/toggle updates for this match
+    source.addEventListener('match-update', (e: any) => {
+      try {
+        const update = JSON.parse(e.data);
+        qc.setQueryData(matchKeys.byId(matchId), (old: Match | undefined) => {
+          if (!old) return old;
+          return { ...old, ...update };
+        });
+      } catch {}
+    });
+
+    // Global: Intercept system config updates (e.g. Pre-Market Odds toggle)
+    source.addEventListener('system:config-update', (e: any) => {
+      try {
+        const update = JSON.parse(e.data);
+        // Uses the exact queryKey from useSystemConfig
+        qc.setQueryData(['system-config'], (old: any) => {
+          if (!old) return update;
+          return { ...old, ...update };
+        });
+      } catch {}
+    });
 
     source.onerror = () => {
       // SSE connection lost — EventSource auto-reconnects
