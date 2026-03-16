@@ -1,6 +1,6 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import { ENDPOINTS } from '@/lib/api/endpoints';
@@ -11,19 +11,34 @@ import type { LoginResponse, LoginDto, RegisterDto, User } from '@/lib/api/types
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: SESSION_MAX_AGE,
-};
+
+async function isSecureRequest(): Promise<boolean> {
+  try {
+    const headersList = await headers();
+    const proto = headersList.get('x-forwarded-proto');
+    if (proto) return proto === 'https';
+  } catch {
+    // headers() unavailable outside request context — fall back to NODE_ENV
+  }
+  return process.env.NODE_ENV === 'production';
+}
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-export async function loginAction(dto: LoginDto): Promise<{ error?: string; success?: boolean; user?: User }> {
+export async function loginAction(dto: LoginDto): Promise<{ error?: string }> {
+  let redirectPath: string | undefined;
+
   try {
     const { tokens, user } = await api.post<LoginResponse>(ENDPOINTS.auth.login(), dto);
+    const secure = await isSecureRequest();
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: SESSION_MAX_AGE,
+    };
 
     const jar = await cookies();
     jar.set('access_token', tokens.accessToken, cookieOptions);
@@ -31,17 +46,22 @@ export async function loginAction(dto: LoginDto): Promise<{ error?: string; succ
       ...cookieOptions,
       maxAge: 60 * 60 * 24 * 30, // 30 days for refresh
     });
-    // Non-httpOnly so middleware (Edge runtime) can read it for role-based guards
+    // Non-httpOnly so the Edge middleware can read it for role-based guards
     jar.set('user_role', user.role.name.toUpperCase(), {
       ...cookieOptions,
       httpOnly: false,
     });
-    return { success: true, user };
+
+    redirectPath = ROUTES.user.dashboard;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Login failed';
     console.error('[LoginAction Error]:', message, err);
     return { error: message };
   }
+
+  // Redirect OUTSIDE the try/catch — Next.js redirect() throws internally
+  // which would be swallowed if called inside the catch block.
+  redirect(redirectPath);
 }
 
 export async function registerAction(dto: RegisterDto): Promise<{ error?: string; success?: boolean; user?: User }> {

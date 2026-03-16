@@ -13,9 +13,6 @@ import { loginSchema, registerSchema, type LoginSchema, type RegisterSchema } fr
 import { ROUTES } from '@/lib/constants/routes';
 import { cn } from '@/lib/utils/cn';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/stores/authStore';
-import type { User } from '@/lib/api/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,13 +20,12 @@ type AuthMode = 'login' | 'register';
 
 interface AuthFormProps {
   mode: AuthMode;
-  onSubmit: (data: LoginSchema | RegisterSchema) => Promise<{ error?: string; success?: boolean; user?: User }>;
+  onSubmit: (data: LoginSchema | RegisterSchema) => Promise<{ error?: string } | void>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AuthForm({ mode, onSubmit }: AuthFormProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -52,18 +48,10 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
 
       const result = await onSubmit({ ...data, recaptchaToken });
 
+      // If we get here after loginAction, there was an error.
+      // On success, loginAction calls redirect() server-side and this code is never reached.
       if (result?.error) {
         setServerError(result.error);
-      } else if (result?.success && result.user) {
-        // Hydrate client-side state
-        const { setUser } = useAuthStore.getState();
-        setUser(result.user);
-        
-        // Force a router refresh to pick up HTTPOnly cookies in middleware
-        router.refresh();
-        router.push(ROUTES.user.dashboard);
-      } else {
-        setServerError('An unknown error occurred');
       }
     });
   });
