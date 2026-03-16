@@ -4,7 +4,7 @@ import React from 'react';
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Trophy, Zap, TrendingUp, Wallet, Settings, Shield, User, Users, LogOut, Activity, BarChart2, Dices, ShieldAlert
+  LayoutDashboard, Trophy, Zap, TrendingUp, Wallet, Settings, Shield, User, Users, LogOut, Activity, BarChart2, Dices, ShieldAlert, FileText, Landmark, Percent
 } from 'lucide-react';
 import { Icon } from '@/components/atoms/Icon';
 import { Text } from '@/components/atoms/Text';
@@ -28,6 +28,11 @@ const userNavItems = [
 
 // Shown ONLY for sub-admin roles (canHaveChild but not top-level admin)
 const subAdminNavItems = [
+  { href: ROUTES.user.cashTransaction, icon: Landmark, label: 'Cash Transaction' },
+  { href: ROUTES.user.commissionLenDen, icon: Percent, label: 'Commission' },
+  { href: ROUTES.user.reports, icon: FileText, label: 'Reports' },
+  { href: ROUTES.admin.matches, icon: Trophy, label: 'Matches' },
+  { href: ROUTES.admin.settlement, icon: ShieldAlert, label: 'Settlement' },
   { href: ROUTES.user.transactions, icon: BarChart2, label: 'Transactions' },
 ] as const;
 
@@ -40,9 +45,8 @@ const rootAdminNavItems = [
   { href: ROUTES.admin.roles, icon: Settings, label: 'Roles' },
   { href: ROUTES.admin.marketConfigs, icon: Settings, label: 'Market Configs' },
   { href: ROUTES.admin.treasury, icon: Wallet, label: 'Treasury' },
-  { href: ROUTES.admin.auditLogs, icon: Activity, label: 'Audit Logs' },
+  { href: ROUTES.admin.auditLogs, icon: ShieldAlert, label: 'Audit Logs' },
   { href: ROUTES.admin.systemConfig, icon: Settings, label: 'System Config' },
-  { href: ROUTES.admin.settlement, icon: ShieldAlert, label: 'Settlement Console' },
 ] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -156,8 +160,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               {adminNavItems.map((item) => (
                 <NavLink key={item.href} {...item} />
               ))}
-              {/* Root-Admin-only: Roles, Treasury, Audit Logs */}
-              {(roleLevel === 0 || roleLevel === undefined) && rootAdminNavItems.map((item) => (
+              {/* Root-level Admin specific items */}
+              {(roleLevel <= 1) && rootAdminNavItems.map((item) => (
                 <NavLink key={item.href} {...item} />
               ))}
             </>

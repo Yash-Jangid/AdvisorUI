@@ -173,7 +173,7 @@ export default function MyTeamPage() {
     }
   }, [user, router]);
 
-  const { data, isLoading, error } = useMyTeam();
+  const { data, isLoading, error } = useMyTeam(1, 1000, false); // Load all levels, up to 1000 members
   const [showCreate, setShowCreate] = useState(false);
   const [topUpTarget, setTopUpTarget] = useState<{ userId: string; username: string } | null>(null);
   const [accessTarget, setAccessTarget] = useState<DownlineUser | null>(null);

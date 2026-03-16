@@ -114,8 +114,28 @@ class ApiClient {
       // reject so the outer catch returns null and stops the retry cycle.
       if (!this.refreshPromise) {
         this.refreshPromise = this.http
-          .post('/auth/refresh')
-          .then(() => { /* success — new Set-Cookie headers applied by backend */ })
+          .post<{accessToken: string; refreshToken: string}>('/auth/refresh')
+          .then(async (res) => { 
+             // If we are on the server (SSR / Server Actions), Axios doesn't automatically
+             // set cookies in the Next.js response. We must manually apply them to the cookie store.
+             if (typeof window === 'undefined') {
+                try {
+                  const { cookies } = await import('next/headers');
+                  const cookieStore = await cookies();
+                  const tokens = res; // axios post resolved returns res.data thanks to ApiClient wrapper
+                  const newAccess = (tokens as any).accessToken;
+                  if (newAccess) {
+                    cookieStore.set('access_token', newAccess, { 
+                      httpOnly: true, 
+                      secure: process.env.NODE_ENV === 'production', 
+                      path: '/', 
+                      sameSite: 'lax',
+                      maxAge: 60 * 15 // 15m
+                    });
+                  }
+                } catch(e) { /* ignore */ }
+             }
+          })
           .finally(() => { this.refreshPromise = null; });
       }
 

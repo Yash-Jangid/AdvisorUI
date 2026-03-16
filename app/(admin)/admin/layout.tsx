@@ -11,7 +11,8 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout';
 
 // Admin access: role level must be 0 (Administrator) or 1 (Admin).
 // Lower level number = higher privilege in this system.
-const ADMIN_MAX_LEVEL = 1; // levels 0 and 1 can access the admin panel
+// Level 0=Root, 1=Admin, 2=SuperMaster, 3=Master, 4=Agent
+const ADMIN_MAX_LEVEL = 4; // allow managerial tiers to access /admin routes
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

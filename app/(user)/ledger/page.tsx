@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, Trophy, RotateCcw, BadgeDollarSign, Coins, RefreshCw } from 'lucide-react';
+import { Wallet, Search, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, RotateCcw, BadgeDollarSign, Coins, RefreshCw } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Text } from '@/components/atoms/Text';
 import { Icon } from '@/components/atoms/Icon';
@@ -9,317 +9,279 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import { CONFIG } from '@/lib/constants/config';
-import { formatPoints, formatDate } from '@/lib/utils/formatters';
+import { formatPoints } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils/cn';
-import type { LedgerEntry, LedgerBalance } from '@/lib/api/types';
 import { format } from 'date-fns';
-import { useAuthStore } from '@/lib/stores/authStore';
-import { useDownlineLedger } from '@/lib/api/hooks/useDownlineLedger';
 
-// ─── Query hooks (local to this page) ────────────────────────────────────────
-
-const ledgerKeys = {
-  balance: () => ['ledger', 'balance'] as const,
-  history: (page: number, limit: number) => ['ledger', 'history', page, limit] as const,
+type VankyLedgerSummary = {
+  dena: number;
+  lena: number;
+  balance: number;
+  balanceLabel: string;
 };
 
-function useLedgerBalance() {
+type LedgerEntry = {
+  id: string;
+  userId: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  description?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  collectionName?: string | null;
+  paymentType?: string | null;
+  remark?: string | null;
+  postDate?: string | null;
+  doneBy?: string | null;
+  entryType?: string | null;
+};
+
+type PaginatedLedgerResponse = {
+  data: LedgerEntry[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  summary: VankyLedgerSummary;
+};
+
+function useVankyLedgerHistory(page: number, limit: number, dateFrom: string, dateTo: string, entryType: string) {
   return useQuery({
-    queryKey: ledgerKeys.balance(),
-    queryFn: () => api.get<LedgerBalance>(ENDPOINTS.ledger.myBalance()),
+    queryKey: ['ledger', 'vanky-history', page, limit, dateFrom, dateTo, entryType],
+    queryFn: () => {
+      let url = `${ENDPOINTS.ledger.myHistory()}?page=${page}&limit=${limit}`;
+      if (dateFrom) url += `&dateFrom=${dateFrom}`;
+      if (dateTo) url += `&dateTo=${dateTo}`;
+      if (entryType !== 'All') url += `&entryType=${entryType}`;
+      return api.get<PaginatedLedgerResponse>(url);
+    },
     staleTime: CONFIG.query.staleTime,
-    refetchInterval: 30_000,
   });
 }
 
-function usePaginatedLedgerHistory(page = 1, limit = 50) {
-  return useQuery({
-    queryKey: ledgerKeys.history(page, limit),
-    queryFn: () =>
-      api.get<{ data: LedgerEntry[]; meta: { total: number; page: number; totalPages: number; hasNextPage: boolean } }>(
-        ENDPOINTS.ledger.myHistory(page, limit)
-      ),
-    staleTime: CONFIG.query.staleTime,
-  });
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const TX_TYPE_CONFIG: Record<string, { label: string; icon: any; cls: string; credit: boolean }> = {
-  CREDIT: { label: 'Credit', icon: ArrowDownLeft, cls: 'text-emerald-400 bg-emerald-400/10', credit: true },
-  DEBIT: { label: 'Debit', icon: ArrowUpRight, cls: 'text-red-400 bg-red-400/10', credit: false },
-  WIN: { label: 'Win', icon: Trophy, cls: 'text-yellow-400 bg-yellow-400/10', credit: true },
-  REFUND: { label: 'Refund', icon: RotateCcw, cls: 'text-cyan-400 bg-cyan-400/10', credit: true },
-  COMMISSION: { label: 'Commission', icon: BadgeDollarSign, cls: 'text-violet-400 bg-violet-400/10', credit: true },
-  BET: { label: 'Bet', icon: Coins, cls: 'text-orange-400 bg-orange-400/10', credit: false },
-};
-
-const TX_FILTER_TYPES = ['ALL', 'CREDIT', 'DEBIT', 'WIN', 'REFUND', 'COMMISSION', 'BET'];
-
-function getTypeConfig(type: string) {
-  return TX_TYPE_CONFIG[type] ?? { label: type, icon: Coins, cls: 'text-text-secondary bg-background-tertiary', credit: true };
-}
-
-// ─── Table Row ───────────────────────────────────────────────────────────────
-
-function TxTableRow({ tx }: { tx: LedgerEntry }) {
-  const cfg = getTypeConfig(tx.type);
+function VankyLedgerSummaryBoxes({ summary }: { summary?: VankyLedgerSummary }) {
+  if (!summary) return null;
 
   return (
-    <tr className="hover:bg-background-tertiary/30 transition-colors group border-b border-border/40">
-      <td className="px-4 py-3">
-        <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold', cfg.cls)}>
-          <Icon icon={cfg.icon} size={12} />
-          {cfg.label}
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <div className={cn('font-mono text-sm font-semibold', cfg.credit ? 'text-emerald-400' : 'text-red-400')}>
-          {cfg.credit ? '+' : '-'}{formatPoints(Math.abs(Number(tx.amount)))} pts
-        </div>
-      </td>
-      <td className="px-4 py-3 text-sm text-text-secondary">{formatPoints(Number(tx.balanceAfter))} pts</td>
-      <td className="px-4 py-3">
-        <Text variant="caption" color="secondary" className="max-w-xs truncate" title={tx.description ?? undefined}>
-          {tx.description || '—'}
-        </Text>
-      </td>
-      <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">
-        {tx.userId?.slice(0, 8) || '—'}
-      </td>
-      <td className="px-4 py-3 font-mono text-xs text-text-tertiary whitespace-nowrap">
-        {format(new Date(tx.createdAt), 'MMM dd, HH:mm')}
-      </td>
-    </tr>
-  );
-}
-
-// ─── Balance Banner ───────────────────────────────────────────────────────────
-
-function BalanceBanner({ balance, transactions }: { balance: LedgerBalance; transactions: LedgerEntry[] }) {
-  const isCredit = (type: string) => ['CREDIT', 'WIN', 'REFUND', 'COMMISSION'].includes(type);
-  const totalIn = transactions.filter(t => isCredit(t.type)).reduce((s, t) => s + Number(t.amount), 0);
-  const totalOut = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + Number(t.amount), 0);
-
-  return (
-    <div className="glass-card rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center gap-6">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="p-4 rounded-xl bg-primary/10 text-primary">
-          <Icon icon={Wallet} size={28} />
-        </div>
-        <div>
-          <Text variant="caption" color="tertiary" className="uppercase tracking-wide font-semibold">
-            Current Balance
-          </Text>
-          <Text variant="h2" weight="bold" className="font-mono mt-0.5">
-            {formatPoints(balance.balance)} pts
-          </Text>
-        </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      {/* Lena Box */}
+      <div className="glass-card rounded-xl p-4 flex flex-col items-center justify-center border-t-2 border-t-emerald-500/50 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+        <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Text variant="caption" className="uppercase tracking-wider text-emerald-400 font-bold mb-1 relative z-10">Total Lena</Text>
+        <Text variant="h3" className="font-mono text-emerald-400 font-bold relative z-10">{formatPoints(summary.lena)} pts</Text>
+      </div>
+      
+      {/* Dena Box */}
+      <div className="glass-card rounded-xl p-4 flex flex-col items-center justify-center border-t-2 border-t-red-500/50 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+        <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Text variant="caption" className="uppercase tracking-wider text-red-400 font-bold mb-1 relative z-10">Total Dena</Text>
+        <Text variant="h3" className="font-mono text-red-400 font-bold relative z-10">{formatPoints(summary.dena)} pts</Text>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:gap-6">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 text-success mb-0.5">
-            <Icon icon={TrendingUp} size={14} />
-            <Text variant="caption" color="success" weight="semibold">Total In (Page)</Text>
-          </div>
-          <Text variant="small" weight="semibold" className="font-mono">
-            {formatPoints(totalIn)} pts
-          </Text>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 text-error mb-0.5">
-            <Icon icon={TrendingDown} size={14} />
-            <Text variant="caption" color="error" weight="semibold">Total Out (Page)</Text>
-          </div>
-          <Text variant="small" weight="semibold" className="font-mono">
-            {formatPoints(totalOut)} pts
-          </Text>
-        </div>
+      {/* Balance Box */}
+      <div className={cn("glass-card rounded-xl p-4 flex flex-col items-center justify-center border-t-2 relative overflow-hidden group hover:-translate-y-1 transition-transform", summary.balance >= 0 ? "border-t-emerald-500" : "border-t-red-500")}>
+        <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", summary.balance >= 0 ? "bg-emerald-500/5" : "bg-red-500/5")} />
+        <Text variant="caption" className="uppercase tracking-wider text-text-secondary font-bold mb-1 relative z-10">Balance</Text>
+        <Text variant="h3" className={cn("font-mono font-bold relative z-10", summary.balance >= 0 ? "text-emerald-400" : "text-red-400")}>
+          {summary.balanceLabel}
+        </Text>
       </div>
     </div>
   );
 }
-
-// ─── Table Component ─────────────────────────────────────────────────────────
-
-function PaginatedTableContainer({
-  title,
-  data,
-  isLoading,
-  error,
-  page,
-  setPage,
-  refetch
-}: {
-  title: string;
-  data: any;
-  isLoading: boolean;
-  error: any;
-  page: number;
-  setPage: React.Dispatch<React.SetStateAction<number>>;
-  refetch: () => void;
-}) {
-  const [typeFilter, setTypeFilter] = useState('ALL');
-
-  const transactions: LedgerEntry[] = (data?.data ?? []).filter(
-    (tx: LedgerEntry) => typeFilter === 'ALL' || tx.type === typeFilter
-  );
-
-  return (
-    <div className="glass-card rounded-2xl overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-background-tertiary/50">
-        <Text variant="small" weight="semibold">{title}</Text>
-        <button
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-2 py-1 text-xs text-text-secondary bg-background border border-border rounded hover:bg-background-tertiary transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={12} className={cn(isLoading && 'animate-spin')} />
-          Refresh
-        </button>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 p-4 border-b border-border bg-background-tertiary/20 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          {TX_FILTER_TYPES.map(t => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                typeFilter === t
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'bg-background text-text-secondary border border-border hover:bg-background-tertiary'
-              )}
-            >
-              {t === 'ALL' ? 'All Types' : t}
-            </button>
-          ))}
-        </div>
-        <Text variant="caption" color="secondary">
-          Page {page} of {data?.meta?.totalPages ?? '?'}
-        </Text>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-auto max-h-[500px] scrollbar-thin">
-        <table className="w-full text-left text-sm whitespace-nowrap">
-          <thead className="sticky top-0 z-10 bg-background-tertiary text-xs uppercase text-text-secondary border-b border-border shadow-sm">
-            <tr>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Amount</th>
-              <th className="px-4 py-3 font-medium">Balance After</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr><td colSpan={5} className="p-8 text-center text-text-secondary">Loading…</td></tr>
-            )}
-            {error && !isLoading && (
-              <tr><td colSpan={5} className="p-8 text-center text-error">Failed to load transactions.</td></tr>
-            )}
-            {!isLoading && transactions.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-16 text-center">
-                  <Text color="secondary">No entries found.</Text>
-                </td>
-              </tr>
-            )}
-            {!isLoading && transactions.map(tx => (
-              <TxTableRow key={tx.id} tx={tx} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="p-3 border-t border-border bg-background-tertiary flex items-center justify-between text-sm text-text-secondary">
-        <span>Showing {transactions.length} of {data?.meta?.total ?? 0} entries</span>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-1 bg-background hover:bg-background-tertiary border border-border rounded disabled:opacity-50 transition-colors"
-            disabled={page === 1}
-            onClick={() => setPage(p => p - 1)}
-          >Prev</button>
-          <span className="font-mono">{page}</span>
-          <button
-            className="px-3 py-1 bg-background hover:bg-background-tertiary border border-border rounded disabled:opacity-50 transition-colors"
-            disabled={!data?.meta?.hasNextPage}
-            onClick={() => setPage(p => p + 1)}
-          >Next</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function LedgerPage() {
-  const user = useAuthStore((s) => s.user);
-  const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name;
-  const isEndUser = roleName?.toUpperCase() === 'USER';
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [entryType, setEntryType] = useState('All');
 
-  const [ledgerPageNum, setLedgerPageNum] = useState(1);
-  const { data: balance, isLoading: balanceLoading } = useLedgerBalance();
-  const {
-    data: historyData,
-    isLoading: historyLoading,
-    error: historyError,
-    refetch: refetchHistory
-  } = usePaginatedLedgerHistory(ledgerPageNum);
+  const { data, isLoading, error, refetch } = useVankyLedgerHistory(page, limit, dateFrom, dateTo, entryType);
 
-  // States for the bonus transactions section (only used by End Users)
-  const [txPageNum, setTxPageNum] = useState(1);
-  const {
-    data: txData,
-    isLoading: txLoading,
-    error: txError,
-    refetch: refetchTx
-  } = useDownlineLedger(txPageNum);
-
-  const transactions = historyData?.data ?? [];
+  const entries = data?.data || [];
+  const summary = data?.summary;
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <Text variant="h2" weight="bold">Ledger</Text>
+      <div className="space-y-6 max-w-[1200px] mx-auto w-full pb-10">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <Text variant="h2" weight="bold">Vanky Ledger</Text>
+        </div>
 
-        {/* Balance Banner */}
-        {balanceLoading ? (
-          <div className="animate-pulse bg-background-tertiary h-32 rounded-2xl" />
-        ) : balance ? (
-          <BalanceBanner balance={balance} transactions={transactions} />
-        ) : null}
+        {/* Filters Box */}
+        <div className="glass-card rounded-2xl p-5 flex flex-col sm:flex-row flex-wrap gap-5 items-end shadow-sm border border-border/50">
+          <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+            <label className="text-xs text-text-secondary uppercase font-semibold">From Date</label>
+            <input 
+              type="date" 
+              className="bg-background-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors hover:border-border/80"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+            <label className="text-xs text-text-secondary uppercase font-semibold">To Date</label>
+            <input 
+              type="date" 
+              className="bg-background-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors hover:border-border/80"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+            <label className="text-xs text-text-secondary uppercase font-semibold">Type</label>
+            <select 
+              className="bg-background-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors hover:border-border/80"
+              value={entryType}
+              onChange={(e) => setEntryType(e.target.value)}
+            >
+              <option value="All">All Types</option>
+              <option value="Lena">Lena</option>
+              <option value="Dena">Dena</option>
+            </select>
+          </div>
+          <button 
+            onClick={() => { setPage(1); refetch(); }}
+            disabled={isLoading}
+            className="bg-primary/90 text-primary-foreground hover:bg-primary px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 min-w-[160px] justify-center"
+          >
+            {isLoading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
+            Get Statement
+          </button>
+        </div>
 
-        {/* My Ledger Entries Table */}
-        <PaginatedTableContainer
-          title="Ledger Entries"
-          data={historyData}
-          isLoading={historyLoading}
-          error={historyError}
-          page={ledgerPageNum}
-          setPage={setLedgerPageNum}
-          refetch={refetchHistory}
-        />
+        {/* Summaries */}
+        {isLoading && !summary ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="animate-pulse bg-background-tertiary h-24 rounded-xl" />
+            <div className="animate-pulse bg-background-tertiary h-24 rounded-xl" />
+            <div className="animate-pulse bg-background-tertiary h-24 rounded-xl" />
+          </div>
+        ) : (
+          <VankyLedgerSummaryBoxes summary={summary} />
+        )}
 
-        {/* Bonus View: Transactions for End Users */}
-        {/* {isEndUser && (
-          <PaginatedTableContainer
-            title="Transactions"
-            data={txData}
-            isLoading={txLoading}
-            error={txError}
-            page={txPageNum}
-            setPage={setTxPageNum}
-            refetch={refetchTx}
-          />
-        )} */}
+        {/* Main Ledger Table */}
+        <div className="glass-card rounded-2xl overflow-hidden flex flex-col shadow-sm border border-border/50">
+          <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-background-tertiary/30">
+            <div className="flex items-center gap-2">
+              <Icon icon={Wallet} className="text-primary" size={18} />
+              <Text variant="body" weight="bold">Ledger Details</Text>
+            </div>
+          </div>
 
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px] scrollbar-thin">
+            <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+              <thead className="sticky top-0 z-10 bg-background-tertiary/95 backdrop-blur-sm text-xs uppercase text-text-secondary border-b border-border shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+                <tr>
+                  <th className="px-5 py-3.5 font-bold tracking-wider">Date</th>
+                  <th className="px-5 py-3.5 font-bold tracking-wider">Collection Name</th>
+                  <th className="px-5 py-3.5 font-bold tracking-wider text-red-400">Debit</th>
+                  <th className="px-5 py-3.5 font-bold tracking-wider text-emerald-400">Credit</th>
+                  <th className="px-5 py-3.5 font-bold tracking-wider">Balance</th>
+                  <th className="px-5 py-3.5 font-bold tracking-wider">Payment Type</th>
+                  <th className="px-5 py-3.5 font-bold tracking-wider">Remark</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {isLoading && (
+                  <tr><td colSpan={7} className="p-12 text-center text-text-secondary"><RefreshCw className="animate-spin mx-auto mb-2 opacity-50" /> Loading statement...</td></tr>
+                )}
+                {error && !isLoading && (
+                  <tr><td colSpan={7} className="p-12 text-center text-red-400 bg-red-400/5">Failed to load ledger entries. Please try again.</td></tr>
+                )}
+                {!isLoading && !error && entries.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-20 text-center">
+                      <div className="flex flex-col items-center justify-center opacity-40">
+                        <Wallet size={48} className="mb-4" />
+                        <Text variant="h4" weight="semibold">No entries found</Text>
+                        <Text variant="small" color="secondary" className="mt-1">Adjust your date filters or type to see history.</Text>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && !error && entries.map((tx) => {
+                  const isCredit = ['CREDIT', 'WIN', 'REFUND', 'COMMISSION'].includes(tx.type) || tx.entryType === 'Lena';
+                  const debitAmt = isCredit ? 0 : Math.abs(Number(tx.amount));
+                  const creditAmt = isCredit ? Math.abs(Number(tx.amount)) : 0;
+
+                  return (
+                    <tr key={tx.id} className="hover:bg-background-tertiary/50 transition-colors group">
+                      <td className="px-5 py-3.5 font-mono text-xs text-text-secondary group-hover:text-text-primary transition-colors">
+                        {format(new Date(tx.createdAt), 'dd-MM-yyyy HH:mm:ss')}
+                      </td>
+                      <td className="px-5 py-3.5 text-sm font-medium">
+                        {tx.collectionName || tx.description || 'System Entry'}
+                      </td>
+                      <td className="px-5 py-3.5 font-mono font-medium">
+                        {debitAmt > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-red-400 bg-red-400/10 px-2 py-0.5 rounded">
+                            {formatPoints(debitAmt)}
+                          </span>
+                        ) : <span className="text-text-tertiary px-2">0</span>}
+                      </td>
+                      <td className="px-5 py-3.5 font-mono font-medium">
+                        {creditAmt > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">
+                            {formatPoints(creditAmt)}
+                          </span>
+                        ) : <span className="text-text-tertiary px-2">0</span>}
+                      </td>
+                      <td className="px-5 py-3.5 font-mono font-bold text-text-primary bg-background-tertiary/10">
+                        {formatPoints(Number(tx.balanceAfter))}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-text-secondary">
+                        {tx.paymentType ? (
+                          <span className="bg-background-tertiary px-2 py-1 rounded border border-border/50">{tx.paymentType}</span>
+                        ) : '—'}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-text-secondary max-w-[250px] truncate" title={tx.remark || undefined}>
+                        {tx.remark || '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="px-5 py-3.5 border-t border-border bg-background-tertiary/50 flex flex-wrap items-center justify-between text-sm text-text-secondary gap-4">
+            <div>
+               Showing <span className="font-mono text-text-primary font-bold">{entries.length}</span> entries
+               {data?.meta?.total ? ` out of ${data.meta.total} total` : ''}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                className="px-4 py-1.5 bg-background hover:bg-background-tertiary border border-border rounded-lg disabled:opacity-30 disabled:hover:bg-background transition-all font-semibold flex items-center gap-1 shadow-sm active:scale-95"
+                disabled={page === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <div className="font-mono bg-background-tertiary px-3 py-1 rounded border border-border/50 text-text-primary">
+                {page} / {data?.meta?.totalPages || 1}
+              </div>
+              <button
+                className="px-4 py-1.5 bg-background hover:bg-background-tertiary border border-border rounded-lg disabled:opacity-30 disabled:hover:bg-background transition-all font-semibold flex items-center gap-1 shadow-sm active:scale-95"
+                disabled={!data?.meta?.hasNextPage}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

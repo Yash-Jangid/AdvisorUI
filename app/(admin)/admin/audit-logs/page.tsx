@@ -11,6 +11,9 @@ import { useAuditLogs, type AuditLogFilters } from '@/lib/api/hooks/useAuditLogs
 import { type AuditAction, type AuditSeverity } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { ROUTES } from '@/lib/constants/routes';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -29,6 +32,18 @@ const AUDIT_ACTIONS: AuditAction[] = ['READ', 'CREATE', 'UPDATE', 'DELETE', 'AUT
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AuditLogsPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  
+  // Internal guard for High Admin only
+  const role = user?.role;
+  const level = typeof role === 'object' ? (role as any).level : 999;
+  
+  if (level > 1) {
+    router.replace(ROUTES.user.dashboard);
+    return null;
+  }
+
   const [search, setSearch] = useState('');
   const [searchField, setSearchField] = useState<'email' | 'username' | 'id'>('email');
   const [filters, setFilters] = useState<AuditLogFilters>({ page: 1, limit: 50 });

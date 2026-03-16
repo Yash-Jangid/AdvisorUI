@@ -8,7 +8,23 @@ import { type Role } from '@/lib/api/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
 
+import { ROUTES } from '@/lib/constants/routes';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/stores/authStore';
+
 export default function RolesAdminPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+
+  // Internal guard for High Admin only
+  const role = user?.role;
+  const level = typeof role === 'object' ? (role as any).level : 999;
+
+  if (level > 1) {
+    router.replace(ROUTES.user.dashboard);
+    return null;
+  }
+
   const { roles, isLoadingAll } = useRoles();
 
   return (

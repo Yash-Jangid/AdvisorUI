@@ -52,6 +52,13 @@ export const useAuth = () => {
   useEffect(() => {
     if (query.isError && (query.error as any)?.response?.status === 401) {
       clearAuth();
+      // Ensure frontend localStorage is dumped so there's no UI ghosting
+      if (typeof window !== 'undefined') {
+          localStorage.removeItem('advisor-auth');
+          // We can't clear the Next.js HttpOnly auth cookies here, 
+          // so we trigger a hard reload/redirect to login where the user can re-authenticate.
+          window.location.href = '/login';
+      }
     }
   }, [query.isError, query.error, clearAuth]);
 

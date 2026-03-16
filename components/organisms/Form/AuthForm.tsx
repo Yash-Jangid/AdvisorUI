@@ -13,6 +13,9 @@ import { loginSchema, registerSchema, type LoginSchema, type RegisterSchema } fr
 import { ROUTES } from '@/lib/constants/routes';
 import { cn } from '@/lib/utils/cn';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import type { User } from '@/lib/api/types';
+import { useAuthStore } from '@/lib/stores/authStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,12 +23,13 @@ type AuthMode = 'login' | 'register';
 
 interface AuthFormProps {
   mode: AuthMode;
-  onSubmit: (data: LoginSchema | RegisterSchema) => Promise<{ error?: string } | void>;
+  onSubmit: (data: LoginSchema | RegisterSchema) => Promise<{ error?: string; success?: boolean; user?: User } | void>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AuthForm({ mode, onSubmit }: AuthFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -48,10 +52,22 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
 
       const result = await onSubmit({ ...data, recaptchaToken });
 
-      // If we get here after loginAction, there was an error.
-      // On success, loginAction calls redirect() server-side and this code is never reached.
       if (result?.error) {
         setServerError(result.error);
+      } else if (result?.success) {
+        // Hydrate client-side auth store so user data is immediately available
+        // (dashboard name, profile page, match prediction form, etc.)
+        if (result.user) {
+          useAuthStore.getState().setUser(result.user);
+        }
+        // router.refresh() forces Next.js to flush the Set-Cookie headers from
+        // the server action response to the browser before we navigate.
+        // Without this, the middleware may not see the access_token cookie and
+        // redirect the user back to /login (307 redirect loop).
+        router.refresh();
+        router.push(ROUTES.user.dashboard);
+      } else {
+        setServerError('An unknown error occurred. Please try again.');
       }
     });
   });
@@ -140,12 +156,12 @@ export function AuthForm({ mode, onSubmit }: AuthFormProps) {
         </button>
 
         {/* Footer link */}
-        <Text variant="small" color="secondary" align="center">
+        {/* <Text variant="small" color="secondary" align="center">
           {isLogin ? "Don't have an account? " : 'Already have an account? '}
           <Link href={isLogin ? ROUTES.auth.register : ROUTES.auth.login} variant="underline">
             {isLogin ? 'Register' : 'Sign in'}
           </Link>
-        </Text>
+        </Text> */}
       </form>
     </FormProvider>
   );
