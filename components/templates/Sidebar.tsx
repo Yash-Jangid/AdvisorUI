@@ -32,7 +32,6 @@ const subAdminNavItems = [
   { href: ROUTES.user.commissionLenDen, icon: Percent, label: 'Commission' },
   { href: ROUTES.user.reports, icon: FileText, label: 'Reports' },
   { href: ROUTES.admin.matches, icon: Trophy, label: 'Matches' },
-  { href: ROUTES.admin.settlement, icon: ShieldAlert, label: 'Settlement' },
   { href: ROUTES.user.transactions, icon: BarChart2, label: 'Transactions' },
 ] as const;
 
@@ -46,6 +45,7 @@ const rootAdminNavItems = [
   { href: ROUTES.admin.marketConfigs, icon: Settings, label: 'Market Configs' },
   { href: ROUTES.admin.treasury, icon: Wallet, label: 'Treasury' },
   { href: ROUTES.admin.auditLogs, icon: ShieldAlert, label: 'Audit Logs' },
+  { href: ROUTES.admin.settlement, icon: ShieldAlert, label: 'Settlement' },
   { href: ROUTES.admin.systemConfig, icon: Settings, label: 'System Config' },
 ] as const;
 

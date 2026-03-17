@@ -25,7 +25,10 @@ export const formatPercentage = (value: number, decimals = 1): string =>
 /**
  * Formats cricket odds: 1.85 → "1.85x"
  */
-export const formatOdds = (value: number): string => `${value.toFixed(2)}x`;
+export const formatOdds = (value: number | undefined | null): string => {
+  if (!value || value <= 0) return '—';
+  return `${value.toFixed(2)}x`;
+};
 
 // ─── Dates ────────────────────────────────────────────────────────────────────
 

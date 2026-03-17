@@ -81,30 +81,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         </div>
 
         {/* Odds Type Legend */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-          <div className="flex gap-3">
-            <div className="mt-0.5 p-1.5 rounded-lg bg-blue-500/10 h-fit">
-              <Icon icon={Info} size={14} className="text-blue-400" />
-            </div>
-            <div>
-              <Text variant="small" weight="semibold" className="text-blue-400">Platform Markets</Text>
-              <Text variant="caption" color="tertiary" className="leading-relaxed">
-                Internal odds managed by the platform. These are stable and follow standard settlement rules.
-              </Text>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div className="mt-0.5 p-1.5 rounded-lg bg-red-500/10 h-fit">
-              <Icon icon={Info} size={14} className="text-red-400" />
-            </div>
-            <div>
-              <Text variant="small" weight="semibold" className="text-red-400">Live Exchange Odds</Text>
-              <Text variant="caption" color="tertiary" className="leading-relaxed">
-                Real-time feed from external exchanges. Highly volatile prices with Back/Lay liquidity.
-              </Text>
-            </div>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column — scoreboard + market tabs */}

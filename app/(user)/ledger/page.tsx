@@ -77,7 +77,7 @@ function VankyLedgerSummaryBoxes({ summary }: { summary?: VankyLedgerSummary }) 
         <Text variant="caption" className="uppercase tracking-wider text-emerald-400 font-bold mb-1 relative z-10">Total Lena</Text>
         <Text variant="h3" className="font-mono text-emerald-400 font-bold relative z-10">{formatPoints(summary.lena)} pts</Text>
       </div>
-      
+
       {/* Dena Box */}
       <div className="glass-card rounded-xl p-4 flex flex-col items-center justify-center border-t-2 border-t-red-500/50 relative overflow-hidden group hover:-translate-y-1 transition-transform">
         <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -112,16 +112,13 @@ export default function LedgerPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-[1200px] mx-auto w-full pb-10">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <Text variant="h2" weight="bold">Vanky Ledger</Text>
-        </div>
 
         {/* Filters Box */}
         <div className="glass-card rounded-2xl p-5 flex flex-col sm:flex-row flex-wrap gap-5 items-end shadow-sm border border-border/50">
           <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
             <label className="text-xs text-text-secondary uppercase font-semibold">From Date</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               className="bg-background-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors hover:border-border/80"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
@@ -129,8 +126,8 @@ export default function LedgerPage() {
           </div>
           <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
             <label className="text-xs text-text-secondary uppercase font-semibold">To Date</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               className="bg-background-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors hover:border-border/80"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
@@ -138,7 +135,7 @@ export default function LedgerPage() {
           </div>
           <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
             <label className="text-xs text-text-secondary uppercase font-semibold">Type</label>
-            <select 
+            <select
               className="bg-background-tertiary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors hover:border-border/80"
               value={entryType}
               onChange={(e) => setEntryType(e.target.value)}
@@ -148,7 +145,7 @@ export default function LedgerPage() {
               <option value="Dena">Dena</option>
             </select>
           </div>
-          <button 
+          <button
             onClick={() => { setPage(1); refetch(); }}
             disabled={isLoading}
             className="bg-primary/90 text-primary-foreground hover:bg-primary px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 min-w-[160px] justify-center"
@@ -219,7 +216,10 @@ export default function LedgerPage() {
                       <td className="px-5 py-3.5 font-mono text-xs text-text-secondary group-hover:text-text-primary transition-colors">
                         {format(new Date(tx.createdAt), 'dd-MM-yyyy HH:mm:ss')}
                       </td>
-                      <td className="px-5 py-3.5 text-sm font-medium">
+                      <td 
+                        className="px-5 py-3.5 text-sm font-medium max-w-[200px] truncate"
+                        title={tx.collectionName || tx.description || 'System Entry'}
+                      >
                         {tx.collectionName || tx.description || 'System Entry'}
                       </td>
                       <td className="px-5 py-3.5 font-mono font-medium">
@@ -257,10 +257,10 @@ export default function LedgerPage() {
           {/* Pagination Footer */}
           <div className="px-5 py-3.5 border-t border-border bg-background-tertiary/50 flex flex-wrap items-center justify-between text-sm text-text-secondary gap-4">
             <div>
-               Showing <span className="font-mono text-text-primary font-bold">{entries.length}</span> entries
-               {data?.meta?.total ? ` out of ${data.meta.total} total` : ''}
+              Showing <span className="font-mono text-text-primary font-bold">{entries.length}</span> entries
+              {data?.meta?.total ? ` out of ${data.meta.total} total` : ''}
             </div>
-            
+
             <div className="flex items-center gap-3">
               <button
                 className="px-4 py-1.5 bg-background hover:bg-background-tertiary border border-border rounded-lg disabled:opacity-30 disabled:hover:bg-background transition-all font-semibold flex items-center gap-1 shadow-sm active:scale-95"

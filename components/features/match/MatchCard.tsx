@@ -99,9 +99,9 @@ export function MatchCard({ match }: MatchCardProps) {
         {/* Odds row */}
         <div className="grid grid-cols-3 gap-2" role="list" aria-label="Odds">
           {[
-            { label: match.teamA, value: match.odds?.teamAWin ?? 1.90 },
+            { label: match.teamA, value: match.odds?.teamAWin ?? 0 },
             { label: 'Draw', value: match.odds?.draw ?? 0 },
-            { label: match.teamB, value: match.odds?.teamBWin ?? 1.90 },
+            { label: match.teamB, value: match.odds?.teamBWin ?? 0 },
           ].map(({ label, value }, i) => (
             <div
               key={`${i}-${label}`}

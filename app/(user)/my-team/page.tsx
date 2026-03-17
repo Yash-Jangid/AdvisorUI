@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Users, UserPlus, Zap, Shield, CheckCircle, XCircle, ChevronRight, TrendingUp, TrendingDown, Percent
+  Users, UserPlus, Zap, Shield, CheckCircle, XCircle, ChevronRight, TrendingUp, TrendingDown, Percent, KeyRound
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Text } from '@/components/atoms/Text';
@@ -15,6 +15,7 @@ import { ManageAccessModal } from '@/components/features/hierarchy/ManageAccessM
 import { PromoteUserModal } from '@/components/features/hierarchy/PromoteUserModal';
 import { DemoteUserModal } from '@/components/features/hierarchy/DemoteUserModal';
 import { SetCommissionModal } from '@/components/features/hierarchy/SetCommissionModal';
+import { ResetPasswordModal } from '@/components/features/hierarchy/ResetPasswordModal';
 import { useMyTeam, type DownlineUser } from '@/lib/api/hooks/useHierarchy';
 import { formatPoints } from '@/lib/utils/formatters';
 import { useAuthStore } from '@/lib/stores/authStore';
@@ -54,10 +55,11 @@ interface TeamRowProps {
   onSetCommission: (user: DownlineUser) => void;
   onPromote: (user: DownlineUser) => void;
   onDemote: (user: DownlineUser) => void;
+  onResetPassword: (user: DownlineUser) => void;
   isAdministrator: boolean;
 }
 
-function TeamRow({ node, onTopUp, onManageAccess, onSetCommission, onPromote, onDemote, isAdministrator }: TeamRowProps) {
+function TeamRow({ node, onTopUp, onManageAccess, onSetCommission, onPromote, onDemote, onResetPassword, isAdministrator }: TeamRowProps) {
   const { id, username, email, role, isActive, isBettingDisabled, depth } = node;
   const initials = username.slice(0, 2).toUpperCase();
 
@@ -143,6 +145,16 @@ function TeamRow({ node, onTopUp, onManageAccess, onSetCommission, onPromote, on
           >
             <Icon icon={Shield} size={16} />
           </button>
+          <button
+            onClick={() => onResetPassword(node)}
+            className={cn(
+              'flex items-center justify-center p-2 rounded-lg text-text-secondary',
+              'hover:bg-warning/10 hover:text-warning transition-colors',
+            )}
+            title="Reset Password"
+          >
+            <Icon icon={KeyRound} size={16} />
+          </button>
         </>
         <button
           onClick={() => onTopUp(id, username)}
@@ -180,6 +192,7 @@ export default function MyTeamPage() {
   const [promoteTarget, setPromoteTarget] = useState<DownlineUser | null>(null);
   const [demoteTarget, setDemoteTarget] = useState<DownlineUser | null>(null);
   const [commissionTarget, setCommissionTarget] = useState<DownlineUser | null>(null);
+  const [passwordResetTarget, setPasswordResetTarget] = useState<DownlineUser | null>(null);
 
   const { data: freshUser } = useAuth();
   const currentUser = freshUser ?? user;
@@ -286,6 +299,7 @@ export default function MyTeamPage() {
               onSetCommission={(u) => setCommissionTarget(u)}
               onPromote={(u) => setPromoteTarget(u)}
               onDemote={(u) => setDemoteTarget(u)}
+              onResetPassword={(u) => setPasswordResetTarget(u)}
               isAdministrator={isAdministrator}
             />
           ))}
@@ -316,6 +330,11 @@ export default function MyTeamPage() {
         open={!!commissionTarget}
         onClose={() => setCommissionTarget(null)}
         targetUser={commissionTarget}
+      />
+      <ResetPasswordModal
+        open={!!passwordResetTarget}
+        onClose={() => setPasswordResetTarget(null)}
+        targetUser={passwordResetTarget}
       />
       {topUpTarget && (
         <TopUpModal
