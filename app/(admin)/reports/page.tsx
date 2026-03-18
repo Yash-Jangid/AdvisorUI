@@ -126,18 +126,18 @@ export default function ReportsPage() {
                     </thead>
                     <tbody className="divide-y divide-border/20">
                         {isLoading && <tr><td colSpan={5} className="py-8 text-center text-text-secondary">Loading P&L...</td></tr>}
-                        {!isLoading && (!reportData || (Array.isArray(reportData) && reportData.length === 0)) && (
+                        {!isLoading && (!reportData?.rows || reportData.rows.length === 0) && (
                             <tr><td colSpan={5} className="py-8 text-center text-text-secondary">No P&L data found.</td></tr>
                         )}
-                        {!isLoading && Array.isArray(reportData) && reportData.map((u: any) => (
+                        {!isLoading && reportData?.rows?.map((u: any) => (
                             <tr key={u.id} className="hover:bg-background-tertiary/30">
                                 <td className="px-4 py-3 font-medium">{u.username}</td>
                                 <td className="px-4 py-3 text-xs"><span className="bg-primary/20 text-primary px-2 py-0.5 rounded">{u.role}</span></td>
-                                <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatPoints(u.totalProfit || 0)}</td>
-                                <td className="px-4 py-3 text-right font-mono text-red-400">{formatPoints(u.totalLoss || 0)}</td>
+                                <td className="px-4 py-3 text-right font-mono text-emerald-400">{formatPoints(u.commPlus || 0)}</td>
+                                <td className="px-4 py-3 text-right font-mono text-red-400">{formatPoints(u.commMinus || 0)}</td>
                                 <td className="px-4 py-3 font-mono font-bold text-right">
-                                    <span className={u.net >= 0 ? "text-emerald-400" : "text-red-400"}>
-                                        {formatPoints(u.net || 0)}
+                                    <span className={u.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                        {u.pnlLabel || formatPoints(u.pnl || 0)}
                                     </span>
                                 </td>
                             </tr>

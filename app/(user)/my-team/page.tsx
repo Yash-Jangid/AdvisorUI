@@ -185,7 +185,7 @@ export default function MyTeamPage() {
     }
   }, [user, router]);
 
-  const { data, isLoading, error } = useMyTeam(1, 1000, false); // Load all levels, up to 1000 members
+  const { data, isLoading, error } = useMyTeam(1, 1000, true); // Load only direct children, up to 1000 members
   const [showCreate, setShowCreate] = useState(false);
   const [topUpTarget, setTopUpTarget] = useState<{ userId: string; username: string } | null>(null);
   const [accessTarget, setAccessTarget] = useState<DownlineUser | null>(null);
@@ -223,7 +223,7 @@ export default function MyTeamPage() {
           <div>
             <Text variant="h2" weight="bold">My Team</Text>
             <Text variant="small" color="secondary" className="mt-1">
-              Your direct and indirect downline members
+              Your direct downline members
             </Text>
           </div>
           <button

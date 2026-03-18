@@ -59,6 +59,14 @@ export interface User {
   isBettingDisabled?: boolean;
   isUserCreationDisabled?: boolean;
   balance: number;
+  reportConfig?: {
+    share: number;
+    matchCommPct: number;
+    sessionCommPct: number;
+    casinoCommPct: number;
+    matkaCommPct: number;
+    commissionType: string;
+  };
   createdAt: string;
 }
 

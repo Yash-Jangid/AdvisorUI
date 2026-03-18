@@ -32,6 +32,7 @@ export const useAuth = () => {
         balance: data.balance ?? 0,
         isActive: data.isActive ?? true,
         createdAt: data.createdAt ?? new Date().toISOString(),
+        reportConfig: data.reportConfig,
       };
     },
     // Only attempt fetch if the client thinks they're authenticated
