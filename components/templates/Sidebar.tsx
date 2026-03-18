@@ -97,10 +97,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay — starts at left-60 to avoid covering the sidebar panel */}
       {isOpen && onClose && (
         <div
-          className="fixed inset-0 z-modal bg-black/50 lg:hidden"
+          className="fixed inset-0 top-14 left-60 z-[1040] bg-black/50 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
