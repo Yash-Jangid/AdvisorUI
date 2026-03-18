@@ -140,3 +140,11 @@ export function useSetCommissionRate() {
     },
   });
 }
+
+/** Generate a unique role-prefixed username. */
+export function useGenerateUsername() {
+  return useMutation({
+    mutationFn: (roleId: string) =>
+      api.get<{ username: string }>(`/users/generate-username?roleId=${roleId}`),
+  });
+}

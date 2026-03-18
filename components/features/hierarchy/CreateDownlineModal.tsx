@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, UserPlus, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UserPlus, Eye, EyeOff, RefreshCw, Loader2 } from 'lucide-react';
 import { Text } from '@/components/atoms/Text';
 import { Icon } from '@/components/atoms/Icon';
 import { cn } from '@/lib/utils/cn';
-import { useCreateDownline } from '@/lib/api/hooks/useHierarchy';
+import { useCreateDownline, useGenerateUsername } from '@/lib/api/hooks/useHierarchy';
 import { useRoles } from '@/lib/api/hooks/useRoles';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ export function CreateDownlineModal({ open, onClose }: Props) {
   const currentUser = useAuthStore((s) => s.user);
   const { activeRoles: rolesData, isLoadingActive: rolesLoading } = useRoles();
   const { mutateAsync: createDownline, isPending } = useCreateDownline();
+  const { mutate: generateUsername, isPending: isGenerating } = useGenerateUsername();
 
   const [form, setForm] = useState({
     username: '',
@@ -42,6 +43,25 @@ export function CreateDownlineModal({ open, onClose }: Props) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<typeof form>>({});
+
+  const handleGenerate = (roleId?: string) => {
+    const targetRoleId = roleId || form.roleId;
+    if (!targetRoleId) return;
+
+    generateUsername(targetRoleId, {
+      onSuccess: (data) => {
+        setForm((f) => ({ ...f, username: data.username }));
+        setErrors((e) => ({ ...e, username: undefined }));
+      },
+    });
+  };
+
+  // Auto-generate username when role changes
+  useEffect(() => {
+    if (form.roleId) {
+        handleGenerate(form.roleId);
+    }
+  }, [form.roleId]);
 
   if (!open) return null;
 
@@ -103,15 +123,31 @@ export function CreateDownlineModal({ open, onClose }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Username */}
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1">Username</label>
-              <input
-                id="downline-username"
-                value={form.username}
-                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-                className={cn(INPUT_CLS, errors.username && 'border-error')}
-                placeholder="e.g. john_agent"
-                autoComplete="off"
-              />
+              <label className="block text-xs font-medium text-text-secondary mb-1 uppercase tracking-wider">Username</label>
+              <div className="relative group">
+                <input
+                  id="downline-username"
+                  value={form.username}
+                  onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                  className={cn(INPUT_CLS, 'pr-10 font-mono tracking-tight', errors.username && 'border-error')}
+                  placeholder="e.g. ADM12345"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  disabled={isGenerating || !form.roleId}
+                  onClick={() => handleGenerate()}
+                  className={cn(
+                    "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-all",
+                    "text-text-tertiary hover:text-primary hover:bg-primary/10",
+                    "disabled:opacity-30 disabled:cursor-not-allowed",
+                    isGenerating && "animate-spin"
+                  )}
+                  title="Regenerate Username"
+                >
+                  <Icon icon={isGenerating ? Loader2 : RefreshCw} size={14} />
+                </button>
+              </div>
               {errors.username && <p className="mt-1 text-xs text-error">{errors.username}</p>}
             </div>
 
