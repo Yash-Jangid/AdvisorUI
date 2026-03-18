@@ -11,6 +11,7 @@ import { formatOdds, formatPoints } from '@/lib/utils/formatters';
 import { IdempotencyManager } from '@/lib/utils/idempotency';
 import { usePlacePrediction } from '@/lib/api/hooks/usePredictions';
 import { cn } from '@/lib/utils/cn';
+import { calculatePayout, isFancyMarket, getOddsLabel } from '@/lib/utils/payout-calculator';
 import type { Match } from '@/lib/api/types';
 import { toast } from 'sonner';
 
@@ -68,14 +69,23 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
   const { watch, handleSubmit, reset } = methods;
   const stake = watch('stake');
 
-  // Use market odds when a market is selected, else fall back to 1.90 default
+  // Extract market context from the selected outcome
   const selectedOdds = selectedOutcome?.decimalOdds ?? (selectedOutcome as any)?.currentOdds ?? (selectedOutcome as any)?.backOdds ?? (selectedOutcome as any)?.odds ?? 1.90;
+  const betType: 'back' | 'lay' | 'yes' | 'no' = (selectedOutcome as any)?.betType ?? 'back';
+  const marketGtype: string = (selectedOutcome as any)?.marketGtype ?? 'match_odds';
+  const lineValue: string | undefined = (selectedOutcome as any)?.lineValue;
+  const isFancy = isFancyMarket(marketGtype);
 
-  const potentialReturnVal = stake && selectedOdds ? stake * selectedOdds : 0;
+  // Compute the correct payout using the shared formula
+  const payoutResult = stake && selectedOdds
+    ? calculatePayout(stake, selectedOdds, marketGtype, betType)
+    : null;
+
+  const potentialReturnVal = payoutResult?.potentialPayout ?? 0;
+  const potentialProfit = payoutResult?.potentialProfit ?? 0;
+  const maxLiability = payoutResult?.maxLiability ?? 0;
   const isOverPayoutLimit = potentialReturnVal > MAX_PAYOUT;
-  const potentialReturn = stake && selectedOdds
-    ? potentialReturnVal.toFixed(0)
-    : '—';
+  const potentialReturn = payoutResult ? potentialReturnVal.toFixed(0) : '—';
 
   const isMarketOpen = !selectedMarket || (selectedMarket as any).status === 'OPEN' || (selectedMarket as any).status === 'ACTIVE' || (selectedMarket as any).status === undefined;
 
@@ -95,6 +105,9 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
             marketId: (selectedMarket as any)?.id ?? (selectedMarket as any)?.mid ?? data.marketId,
             outcomeKey: (selectedOutcome as any)?.outcomeKey ?? (selectedOutcome as any)?.sid ?? data.outcomeKey,
             acceptedOdds: selectedOdds,
+            betType,
+            marketGtype,
+            lineValue: lineValue ?? undefined,
           };
           console.log("📡 Sending Payload:", payload);
           placePrediction(
@@ -153,8 +166,12 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
                   {selectedMarket.displayName ?? (selectedMarket as any).mname}
                   {!isMarketOpen && <span className="ml-2 text-error text-[10px] font-bold">SUSPENDED</span>}
                 </p>
+                {lineValue && <p className="text-[10px] text-text-tertiary mt-0.5">Line: {lineValue}</p>}
               </div>
-              <span className="font-mono text-sm font-semibold text-primary">{formatOdds(selectedOdds)}</span>
+              <div className="text-right">
+                <span className="font-mono text-sm font-semibold text-primary block">{isFancy ? `${selectedOdds}%` : formatOdds(selectedOdds)}</span>
+                <span className="text-[10px] text-text-tertiary">{isFancy ? 'Rate' : getOddsLabel(marketGtype)}</span>
+              </div>
             </div>
           ) : (
             <div className="px-3 py-3 rounded-lg border border-dashed border-border bg-background-secondary text-center">
@@ -208,6 +225,25 @@ export function PredictionForm({ match, userBalance, onSuccess, selectedMarket, 
             {potentialReturn !== '—' ? formatPoints(Number(potentialReturn)) : '—'}
           </Text>
         </div>
+        {payoutResult && stake > 0 && (
+          <div className="grid grid-cols-2 gap-2 px-3">
+            <div className="text-center">
+              <p className="text-[10px] text-text-tertiary">Profit</p>
+              <p className="text-xs font-mono font-semibold text-emerald-400">{formatPoints(potentialProfit)}</p>
+            </div>
+            {betType === 'lay' ? (
+              <div className="text-center">
+                <p className="text-[10px] text-text-tertiary">Max Liability</p>
+                <p className="text-xs font-mono font-semibold text-red-400">{formatPoints(maxLiability)}</p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-[10px] text-text-tertiary">Stake</p>
+                <p className="text-xs font-mono font-semibold text-text-secondary">{formatPoints(stake || 0)}</p>
+              </div>
+            )}
+          </div>
+        )}
         {isOverPayoutLimit && (
           <Text variant="caption" color="error" className="mt-1 block px-1">
             Maximum potential payout is {formatPoints(MAX_PAYOUT)}

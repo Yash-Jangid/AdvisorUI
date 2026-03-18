@@ -13,9 +13,6 @@ import { useAuthStore } from '@/lib/stores/authStore';
 import { formatDate } from '@/lib/utils/formatters';
 import { Market, MarketOutcome } from '@/lib/api/types';
 import { DiamondMarketsPanel } from '@/components/features/match/DiamondMarketsPanel';
-import { Info } from 'lucide-react';
-import { Icon } from '@/components/atoms/Icon';
-import { cn } from '@/lib/utils/cn';
 
 interface MatchDetailPageProps {
   params: Promise<{ id: string }>;
@@ -60,7 +57,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     );
   }
 
-  const handleOutcomeSelect = (marketId: string, outcome: MarketOutcome, market: Market) => {
+  const handleOutcomeSelect = (_marketId: string, outcome: MarketOutcome, market: Market) => {
     setSelectedMarket(market);
     setSelectedOutcome(outcome);
   };

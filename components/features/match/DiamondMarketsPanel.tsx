@@ -56,7 +56,11 @@ function MatchOddsTable({ market, onSelectOutcome }: { market: DiamondMarket, on
                 <td className="py-2.5 text-center">
                   {backOdds ? (
                     <button 
-                      onClick={() => isActive && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid), label: runner.nat, decimalOdds: backOdds.odds }, market)}
+                      onClick={() => isActive && onSelectOutcome?.(
+                        String(market.mid ?? market.mname),
+                        { outcomeKey: String(runner.sid), label: runner.nat, decimalOdds: backOdds.odds, betType: 'back', marketGtype: market.gtype ?? 'match_odds', lineValue: runner.nat },
+                        market
+                      )}
                       disabled={!isActive}
                       className="inline-flex flex-col items-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
                       <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded font-mono font-bold text-sm transition-all cursor-pointer">
@@ -71,7 +75,11 @@ function MatchOddsTable({ market, onSelectOutcome }: { market: DiamondMarket, on
                 <td className="py-2.5 text-center">
                   {layOdds ? (
                     <button 
-                      onClick={() => isActive && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid), label: runner.nat, decimalOdds: layOdds.odds }, market)}
+                      onClick={() => isActive && onSelectOutcome?.(
+                        String(market.mid ?? market.mname),
+                        { outcomeKey: String(runner.sid), label: runner.nat + ' (Lay)', decimalOdds: layOdds.odds, betType: 'lay', marketGtype: market.gtype ?? 'match_odds', lineValue: runner.nat },
+                        market
+                      )}
                       disabled={!isActive}
                       className="inline-flex flex-col items-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
                       <span className="bg-pink-500/20 text-pink-400 border border-pink-500/30 px-3 py-1 rounded font-mono font-bold text-sm transition-all cursor-pointer">
@@ -116,7 +124,11 @@ function FancyGrid({ market, onSelectOutcome }: { market: DiamondMarket, onSelec
             </p>
             <div className="flex gap-1.5">
               <button 
-                onClick={() => isActive && no?.odds && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid ?? ridx), label: runner.nat + ' (NO)', decimalOdds: no.odds }, market)}
+                onClick={() => isActive && no?.odds && onSelectOutcome?.(
+                  String(market.mid ?? market.mname),
+                  { outcomeKey: String(runner.sid ?? ridx), label: runner.nat + ' (NO)', decimalOdds: no.odds, betType: 'no', marketGtype: market.gtype ?? 'fancy', lineValue: runner.nat },
+                  market
+                )}
                 disabled={!isActive || !no?.odds}
                 className="flex-1 text-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
                 <div className="bg-pink-500/20 border border-pink-500/30 rounded py-1 px-1 cursor-pointer">
@@ -126,7 +138,11 @@ function FancyGrid({ market, onSelectOutcome }: { market: DiamondMarket, onSelec
                 <p className="text-[10px] text-zinc-500 mt-1 font-medium">NO</p>
               </button>
               <button 
-                onClick={() => isActive && yes?.odds && onSelectOutcome?.(String(market.mid ?? market.mname), { outcomeKey: String(runner.sid ?? ridx), label: runner.nat + ' (YES)', decimalOdds: yes.odds }, market)}
+                onClick={() => isActive && yes?.odds && onSelectOutcome?.(
+                  String(market.mid ?? market.mname),
+                  { outcomeKey: String(runner.sid ?? ridx), label: runner.nat + ' (YES)', decimalOdds: yes.odds, betType: 'yes', marketGtype: market.gtype ?? 'fancy', lineValue: runner.nat },
+                  market
+                )}
                 disabled={!isActive || !yes?.odds}
                 className="flex-1 text-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
                 <div className="bg-blue-500/20 border border-blue-500/30 rounded py-1 px-1 cursor-pointer">
