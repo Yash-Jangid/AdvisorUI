@@ -1,9 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../client';
-export type MarketType = string;
+import { ApiError } from '../types';
 
-interface MarketConfig {
-  marketType: MarketType;
+export interface MarketOutcomeConfig {
+  outcomeKey: string;
+  label: string;
+}
+
+export interface MarketConfig {
+  marketType: string;
   displayName: string;
   settlementTrigger: string;
   overround: number;
@@ -11,45 +16,28 @@ interface MarketConfig {
   maxStake: number;
   maxPayout: number;
   defaultLine?: number;
-  defaultOutcomes: Array<{ outcomeKey: string; label: string; baseProbability: number }>;
+  defaultOutcomes: MarketOutcomeConfig[];
 }
 
-export const ENDPOINTS_MARKET_CONFIGS = {
-  getAll: () => '/admin/market-configs',
-  update: (marketType: MarketType) => `/admin/market-configs/${marketType}`,
+export const marketConfigKeys = {
+  all: () => ['market-configs'] as const,
+  detail: (type: string) => ['market-configs', type] as const,
 };
 
-const marketConfigsKeys = {
-  all: ['marketConfigs'] as const,
-  detail: (marketType: MarketType) => [...marketConfigsKeys.all, marketType] as const,
-};
-
-// ─── Fetch All Configs ────────────────────────────────────────────────────────
 export function useMarketConfigs() {
-  return useQuery<MarketConfig[]>({
-    queryKey: marketConfigsKeys.all,
-    queryFn: async () => {
-      const response = await api.get<MarketConfig[]>(ENDPOINTS_MARKET_CONFIGS.getAll());
-      return response;
-    },
+  return useQuery<MarketConfig[], ApiError>({
+    queryKey: marketConfigKeys.all(),
+    queryFn: () => api.get<MarketConfig[]>('/admin/market-configs'),
   });
 }
 
-// ─── Update Configuration ─────────────────────────────────────────────────────
 export function useUpdateMarketConfig() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (params: { marketType: MarketType; data: Partial<MarketConfig> }) => {
-      const response = await api.put<MarketConfig>(
-        ENDPOINTS_MARKET_CONFIGS.update(params.marketType),
-        params.data
-      );
-      return response;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: marketConfigsKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketConfigsKeys.detail(variables.marketType) });
+  return useMutation<MarketConfig, ApiError, { marketType: string; data: Partial<MarketConfig> }>({
+    mutationFn: ({ marketType, data }) => api.patch(`/admin/market-configs/${marketType}`, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: marketConfigKeys.all() });
     },
   });
 }
