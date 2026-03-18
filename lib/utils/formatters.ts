@@ -5,14 +5,18 @@ import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 /**
  * Formats a points balance: 1234567 → "1,234,567 pts"
  */
-export const formatPoints = (value: number): string =>
-  `${new Intl.NumberFormat('en-IN').format(value)}`;
+export const formatPoints = (value: number | undefined | null): string => {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) return '0';
+  return `${new Intl.NumberFormat('en-IN').format(value)}`;
+};
 
 /**
  * Formats a compact number: 1234567 → "1.2M"
  */
-export const formatCompact = (value: number): string =>
-  new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+export const formatCompact = (value: number | undefined | null): string => {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) return '0';
+  return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+};
 
 /**
  * Formats a percentage change with sign: 5.3 → "+5.3%", -2.1 → "-2.1%"

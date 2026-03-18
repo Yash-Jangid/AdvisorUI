@@ -164,7 +164,7 @@ function MarketCard({ market, onSelectOutcome }: { market: DiamondMarket, onSele
   
   // Diamond uses various names/types for markets that behave like fancy grids (yes/no)
   const isFancy = 
-    market.mname.toLowerCase().includes('fancy') || 
+    (market.mname ?? '').toLowerCase().includes('fancy') || 
     market.gtype === 'fancy' || 
     market.gtype === 'fancy1' || 
     market.gtype === 'oddeven' || 

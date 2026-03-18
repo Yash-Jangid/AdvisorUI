@@ -31,6 +31,8 @@ export function MatchCard({ match }: MatchCardProps) {
     setIsMounted(true);
   }, []);
 
+  if (!isMounted) return <MatchCardSkeleton />;
+
   return (
     <NextLink
       href={ROUTES.user.matchDetail(match.id)}
@@ -51,21 +53,24 @@ export function MatchCard({ match }: MatchCardProps) {
           <div className="flex items-center gap-3">
             {isLive ? (
               <div className="flex items-center gap-1.5">
-                <span className="live-dot" aria-label="Live match" />
-                <Text variant="caption" color="error" weight="semibold" className="uppercase tracking-wide">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+                <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider">
                   Live
-                </Text>
+                </span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-text-tertiary">
-                <Icon icon={Clock} size={13} />
-                <Text variant="caption" color="tertiary" suppressHydrationWarning>
-                  {isMounted ? formatMatchTime(match.startTime) : 'Loading...'}
-                </Text>
+                <Icon icon={Clock} size={12} />
+                <span className="text-[10px] font-semibold">
+                  {formatMatchTime(match.startTime)}
+                </span>
               </div>
             )}
-            {match.category && match.category.toLowerCase() !== 'others' && (
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-semibold uppercase tracking-wider hidden sm:inline-block">
+            {(match.category ?? '').toLowerCase() !== 'others' && (
+              <span className="text-[10px] font-bold text-text-tertiary bg-background-tertiary px-2 py-0.5 rounded-full uppercase tracking-wide">
                 {match.category}
               </span>
             )}
@@ -123,11 +128,11 @@ export function MatchCard({ match }: MatchCardProps) {
           <div className="flex items-center gap-1">
             <Icon icon={Users} size={12} />
             <Text variant="caption" color="tertiary">
-              {formatCompact(match.predictionCount)}
+              {formatCompact(match.predictionCount ?? 0)}
             </Text>
           </div>
           <Text variant="caption" color="tertiary">
-            Pool: {formatPoints(match.totalPool)}
+            Pool: {formatPoints(match.totalPool ?? 0)}
           </Text>
         </div>
       </article>
